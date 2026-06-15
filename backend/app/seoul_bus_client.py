@@ -161,3 +161,93 @@ class SeoulBusClient:
             {"id": f"S_{route_id}_{i+1}", "name": name, "sequence": i+1}
             for i, name in enumerate(selected_names)
         ]
+
+    @classmethod
+    def get_stations_by_pos(cls, lat: float, lng: float, radius: int = 400, service_key: str = ""):
+        """
+        Fetches bus stations within a radius around coordinates.
+        """
+        key = service_key or settings.SEOUL_BUS_API_KEY
+        if not key:
+            return []
+        try:
+            url = "http://ws.bus.go.kr/api/rest/stationinfo/getStationByPos"
+            params = {
+                "ServiceKey": key,
+                "tmX": str(lng),
+                "tmY": str(lat),
+                "radius": str(radius)
+            }
+            res = requests.get(url, params=params, timeout=5)
+            if res.status_code == 200:
+                root = ET.fromstring(res.content)
+                stations = []
+                for item in root.findall(".//itemList"):
+                    station_id = item.findtext("stationId")
+                    station_nm = item.findtext("stationNm")
+                    gps_x = float(item.findtext("gpsX", "0"))
+                    gps_y = float(item.findtext("gpsY", "0"))
+                    ars_id = item.findtext("arsId", "")
+                    dist = int(item.findtext("dist", "0"))
+                    stations.append({
+                        "id": station_id,
+                        "name": station_nm,
+                        "lat": gps_y,
+                        "lng": gps_x,
+                        "arsId": ars_id,
+                        "dist": dist
+                    })
+                return stations
+        except Exception as e:
+            print(f"Seoul Bus API error in get_stations_by_pos: {e}")
+        return []
+
+    @classmethod
+    def get_realtime_arrivals(cls, station_id: str, service_key: str = ""):
+        """
+        Fetches real-time bus arrivals for a station.
+        """
+        key = service_key or settings.SEOUL_BUS_API_KEY
+        if not key:
+            return []
+        try:
+            url = "http://ws.bus.go.kr/api/rest/arrive/getArrInfoByStId"
+            params = {
+                "ServiceKey": key,
+                "stId": station_id
+            }
+            res = requests.get(url, params=params, timeout=5)
+            if res.status_code == 200:
+                root = ET.fromstring(res.content)
+                arrivals = []
+                for item in root.findall(".//itemList"):
+                    route_name = item.findtext("rtNm")
+                    route_id = item.findtext("busRouteId")
+                    arrmsg1 = item.findtext("arrmsg1")
+                    arrmsg2 = item.findtext("arrmsg2")
+                    exps1 = int(item.findtext("exps1", "0"))
+                    exps2 = int(item.findtext("exps2", "0"))
+                    congestion1 = item.findtext("reride_Num1", "0")
+                    congestion2 = item.findtext("reride_Num2", "0")
+                    route_type = item.findtext("routeType", "3")
+                    ars_id = item.findtext("arsId", "")
+                    station_nm = item.findtext("stNm", "")
+                    
+                    arrivals.append({
+                        "routeName": route_name,
+                        "routeId": route_id,
+                        "arrmsg1": arrmsg1,
+                        "arrmsg2": arrmsg2,
+                        "exps1": exps1,
+                        "exps2": exps2,
+                        "congestion1": congestion1,
+                        "congestion2": congestion2,
+                        "routeType": route_type,
+                        "arsId": ars_id,
+                        "stationNm": station_nm
+                    })
+                return arrivals
+        except Exception as e:
+            print(f"Seoul Bus API error in get_realtime_arrivals: {e}")
+        return []
+

@@ -60,3 +60,28 @@ def search_routes(
             db.commit()
             
     return routes
+
+@router.get("/realtime/stations-by-pos")
+def get_realtime_stations_by_pos(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    radius: int = Query(400, description="Search radius in meters"),
+    serviceKey: str = Query("", description="Public Data API Key")
+):
+    """
+    Fetches real-time bus stations around a specific coordinate.
+    """
+    stations = SeoulBusClient.get_stations_by_pos(lat, lng, radius, serviceKey)
+    return {"stations": stations}
+
+@router.get("/realtime/arrivals")
+def get_realtime_arrivals(
+    stationId: str = Query(..., description="The 9-digit station ID"),
+    serviceKey: str = Query("", description="Public Data API Key")
+):
+    """
+    Fetches real-time bus arrival information for a specific station.
+    """
+    arrivals = SeoulBusClient.get_realtime_arrivals(stationId, serviceKey)
+    return {"arrivals": arrivals}
+

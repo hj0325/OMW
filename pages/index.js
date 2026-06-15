@@ -18,36 +18,71 @@ import {
   Server
 } from 'lucide-react';
 
-// Pre-defined popular stations in Seoul with real coordinates
+// Pre-defined popular stations in Seoul with real coordinates and realistic route IDs
 const PREDEFINED_STATIONS = [
-  { id: "ST_GANGNAM", name: "강남역 정류소", lat: 37.4979, lng: 127.0276, routes: ["M2341", "01번", "N62번", "147번"] },
-  { id: "ST_HONGDAE", name: "홍대입구역 정류소", lat: 37.5575, lng: 126.9244, routes: ["273번", "01번", "N62번", "65번"] },
-  { id: "ST_MYEONGDONG", name: "명동역 정류소", lat: 37.5609, lng: 126.9861, routes: ["147번", "65번", "01번", "N13번"] },
-  { id: "ST_SEOUL_STN", name: "서울역 버스환승센터", lat: 37.5546, lng: 126.9706, routes: ["720번", "120번", "M2341", "N13번"] },
-  { id: "ST_YEOUIDO", name: "여의도역 정류소", lat: 37.5216, lng: 126.9242, routes: ["M2341", "720번", "01번", "N62번"] },
-  { id: "ST_JONGNO", name: "종로3가역 정류소", lat: 37.5704, lng: 126.9922, routes: ["273번", "147번", "720번", "N13번"] },
-  { id: "ST_SINCHON", name: "신촌역 정류소", lat: 37.5552, lng: 126.9369, routes: ["273번", "65번", "01번", "N62번"] },
-  { id: "ST_JAMSIL", name: "잠실역 정류소", lat: 37.5133, lng: 127.1001, routes: ["M2341", "65번", "01번", "N13번"] },
-  { id: "ST_DONGDAEMUN", name: "동대문역 정류소", lat: 37.5714, lng: 127.0092, routes: ["147번", "720번", "273번", "N13번"] },
-  { id: "ST_CHEONGNYANGNI", name: "청량리역 환승센터", lat: 37.5802, lng: 127.0448, routes: ["147번", "273번", "120번", "720번"] },
-  { id: "ST_GWANGHWAMUN", name: "광화문역 정류소", lat: 37.5716, lng: 126.9768, routes: ["720번", "147번", "01번", "N62번"] },
-  { id: "ST_HYEHWA", name: "혜화역 대학로 정류소", lat: 37.5822, lng: 127.0019, routes: ["273번", "120번", "01번", "N13번"] },
-  { id: "ST_HUFS", name: "한국외대 정문", lat: 37.5973, lng: 127.0578, routes: ["65번", "273번", "147번", "N13번"] },
-  { id: "ST_KYUNGHEE", name: "경희대후문", lat: 37.5954, lng: 127.0524, routes: ["65번", "147번", "120번", "N13번"] },
-  { id: "ST_DOLGOTI", name: "돌곶이역 2번 출구", lat: 37.6105, lng: 127.0565, routes: ["120번", "147번", "M2341", "01번", "N62번"] },
-  { id: "ST_SINIMUN", name: "신이문역 정류소", lat: 37.6018, lng: 127.0615, routes: ["65번", "120번", "147번", "N62번"] },
-  { id: "ST_SEOKGWAN", name: "석관동주민센터", lat: 37.6062, lng: 127.0622, routes: ["120번", "147번", "65번", "N13번"] }
+  { id: "ST_GANGNAM", name: "강남역 정류소", lat: 37.4979, lng: 127.0276, routes: ["M2341", "3412번", "140번", "N13번"], arsId: "22010", stId: "121000104" },
+  { id: "ST_HONGDAE", name: "홍대입구역 정류소", lat: 37.5575, lng: 126.9244, routes: ["273번", "7612번", "602번", "N62번"], arsId: "14015", stId: "113000120" },
+  { id: "ST_MYEONGDONG", name: "명동역 정류소", lat: 37.5609, lng: 126.9861, routes: ["104번", "7011번", "M5107", "N13번"], arsId: "02150", stId: "101000056" },
+  { id: "ST_SEOUL_STN", name: "서울역 버스환승센터", lat: 37.5546, lng: 126.9706, routes: ["150번", "501번", "M4101", "N13번"], arsId: "02004", stId: "101000004" },
+  { id: "ST_YEOUIDO", name: "여의도역 정류소", lat: 37.5216, lng: 126.9242, routes: ["162번", "5618번", "M7111", "N62번"], arsId: "19155", stId: "118000070" },
+  { id: "ST_JONGNO", name: "종로3가역 정류소", lat: 37.5704, lng: 126.9922, routes: ["273번", "143번", "720번", "N13번"], arsId: "01183", stId: "100000088" },
+  { id: "ST_SINCHON", name: "신촌역 정류소", lat: 37.5552, lng: 126.9369, routes: ["273번", "7713번", "5714번", "N62번"], arsId: "13022", stId: "112000022" },
+  { id: "ST_JAMSIL", name: "잠실역 정류소", lat: 37.5133, lng: 127.1001, routes: ["3413번", "301번", "M2341", "N13번"], arsId: "24018", stId: "123000128" },
+  { id: "ST_DONGDAEMUN", name: "동대문역 정류소", lat: 37.5714, lng: 127.0092, routes: ["144번", "720번", "273번", "N13번"], arsId: "01233", stId: "100000137" },
+  { id: "ST_CHEONGNYANGNI", name: "청량리역 환승센터", lat: 37.5802, lng: 127.0448, routes: ["147번", "273번", "1213번", "720번"], arsId: "06015", stId: "105000485" },
+  { id: "ST_GWANGHWAMUN", name: "광화문역 정류소", lat: 37.5716, lng: 126.9768, routes: ["720번", "109번", "1020번", "N62번"], arsId: "01119", stId: "100000028" },
+  { id: "ST_HYEHWA", name: "혜화역 대학로 정류소", lat: 37.5822, lng: 127.0019, routes: ["273번", "301번", "2112번", "N13번"], arsId: "01229", stId: "100000133" },
+  { id: "ST_HUFS", name: "한국외대 정문", lat: 37.5973, lng: 127.0578, routes: ["273번", "147번", "1222번", "N13번"], arsId: "06124", stId: "105000040" },
+  { id: "ST_KYUNGHEE", name: "경희대후문", lat: 37.5954, lng: 127.0524, routes: ["273번", "147번", "1222번", "N13번"], arsId: "06282", stId: "105000188" },
+  { id: "ST_DOLGOTI", name: "돌곶이역 2번 출구", lat: 37.6105, lng: 127.0565, routes: ["120번", "147번", "1111번", "N62번"], arsId: "08139", stId: "107000049" },
+  { id: "ST_SINIMUN", name: "신이문역 정류소", lat: 37.6018, lng: 127.0615, routes: ["120번", "147번", "1122번", "N62번"], arsId: "06232", stId: "105000142" },
+  { id: "ST_SEOKGWAN", name: "석관동주민센터", lat: 37.6062, lng: 127.0622, routes: ["120번", "147번", "1111번", "N13번"], arsId: "08141", stId: "107000051" }
 ];
 
 // Route details with types and colors
 const ROUTE_DETAILS = {
-  "65번": { name: "65번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
-  "120번": { name: "120번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
+  // 지선버스 (Green)
+  "120번": { name: "120번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
+  "1111번": { name: "1111번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
+  "1122번": { name: "1122번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
+  "1213번": { name: "1213번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
+  "1222번": { name: "1222번", type: "지선", color: "emerald", hex: "#10b981", interval: 13 },
+  "2112번": { name: "2112번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
+  "3412번": { name: "3412번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
+  "3413번": { name: "3413번", type: "지선", color: "emerald", hex: "#10b981", interval: 9 },
+  "5618번": { name: "5618번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
+  "7011번": { name: "7011번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
+  "7612번": { name: "7612번", type: "지선", color: "emerald", hex: "#10b981", interval: 9 },
+  "7713번": { name: "7713번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
+
+  // 간선버스 (Blue)
+  "104번": { name: "104번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
+  "109번": { name: "109번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
+  "140번": { name: "140번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 7 },
+  "143번": { name: "143번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 6 },
+  "144번": { name: "144번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
   "147번": { name: "147번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
+  "150번": { name: "150번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
+  "162번": { name: "162번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
   "273번": { name: "273번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
+  "301번": { name: "301번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
+  "501번": { name: "501번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
+  "5714번": { name: "5714번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
+  "602번": { name: "602번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
   "720번": { name: "720번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 11 },
+  "1020번": { name: "1020번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 12 },
+
+  // 광역버스 (Red)
   "M2341": { name: "M2341", type: "광역", color: "rose", hex: "#ef4444", interval: 15 },
+  "M4101": { name: "M4101", type: "광역", color: "rose", hex: "#ef4444", interval: 12 },
+  "M5107": { name: "M5107", type: "광역", color: "rose", hex: "#ef4444", interval: 10 },
+  "M7111": { name: "M7111", type: "광역", color: "rose", hex: "#ef4444", interval: 14 },
+
+  // 순환버스 (Yellow)
   "01번": { name: "01번", type: "순환", color: "amber", hex: "#f59e0b", interval: 12 },
+  "02번": { name: "02번", type: "순환", color: "amber", hex: "#f59e0b", interval: 15 },
+
+  // 심야버스 (Navy)
   "N13번": { name: "N13번", type: "심야", color: "indigo", hex: "#3730a3", interval: 25 },
   "N62번": { name: "N62번", type: "심야", color: "indigo", hex: "#3730a3", interval: 30 }
 };
@@ -83,6 +118,49 @@ const formatDisplayTime = (date) => {
   return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 };
 
+// Helper to parse minutes left from real-time API seconds or message
+const getMinutesLeft = (exps, arrmsg) => {
+  if (exps && exps > 0) {
+    return Math.max(0, Math.round(exps / 60));
+  }
+  if (arrmsg) {
+    if (arrmsg.includes("곧 도착") || arrmsg.includes("도착 예정") || arrmsg.includes("진입")) {
+      return 1;
+    }
+    if (arrmsg.includes("도착")) {
+      return 0;
+    }
+    // Try to parse minutes from string like "3분5초후"
+    const match = arrmsg.match(/(\d+)분/);
+    if (match) {
+      return parseInt(match[1]);
+    }
+  }
+  return null;
+};
+
+// Helper to map route type from real-time API to route details
+const getRouteDetailsFromType = (routeType, routeName) => {
+  const typeStr = String(routeType);
+  if (typeStr === "3") {
+    return { name: routeName, type: "간선", color: "sky", hex: "#38bdf8", interval: 10 };
+  } else if (typeStr === "4") {
+    return { name: routeName, type: "지선", color: "emerald", hex: "#34d399", interval: 12 };
+  } else if (typeStr === "5") {
+    return { name: routeName, type: "순환", color: "amber", hex: "#facc15", interval: 15 };
+  } else if (typeStr === "6") {
+    return { name: routeName, type: "광역", color: "rose", hex: "#ef4444", interval: 20 };
+  } else if (typeStr === "15") {
+    return { name: routeName, type: "심야", color: "indigo", hex: "#3f51b5", interval: 30 };
+  } else {
+    // Check if routeName starts with N (night bus)
+    if (routeName && routeName.startsWith("N")) {
+      return { name: routeName, type: "심야", color: "indigo", hex: "#3f51b5", interval: 30 };
+    }
+    return { name: routeName, type: "지선", color: "emerald", hex: "#34d399", interval: 12 };
+  }
+};
+
 export default function Home() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,6 +173,109 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [dataSource, setDataSource] = useState("checking"); // 'api' | 'local'
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Real-time Seoul Bus API States
+  const [serviceKey, setServiceKey] = useState("");
+  const [realtimeMode, setRealtimeMode] = useState(false);
+  const [realtimeArrivals, setRealtimeArrivals] = useState([]);
+  const [isLoadingRealtime, setIsLoadingRealtime] = useState(false);
+
+  // Load API Key and Mode from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const defaultKey = process.env.NEXT_PUBLIC_DEFAULT_SEOUL_BUS_API_KEY || "";
+      const savedKey = localStorage.getItem("seoul_bus_service_key") || defaultKey;
+      const savedMode = localStorage.getItem("seoul_bus_realtime_mode") !== "false";
+      setServiceKey(savedKey);
+      setRealtimeMode(savedMode);
+      if (savedKey) {
+        localStorage.setItem("seoul_bus_service_key", savedKey);
+      }
+    }
+  }, []);
+
+  // Save mode changes to localStorage
+  useEffect(() => {
+    localStorage.setItem("seoul_bus_realtime_mode", realtimeMode ? "true" : "false");
+  }, [realtimeMode]);
+
+  // Fetch real-time arrivals when station changes or mode toggles
+  const fetchRealtimeArrivals = async (stationId) => {
+    if (!stationId || !serviceKey) return;
+    
+    const station = stations.find(s => s.id === stationId);
+    if (!station) return;
+    
+    let targetStId = station.stId;
+    
+    // If it's a dynamic station without stId, we can find the nearest real station first!
+    if (!targetStId) {
+      setIsLoadingRealtime(true);
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/realtime/stations-by-pos?lat=${station.lat}&lng=${station.lng}&radius=300&serviceKey=${encodeURIComponent(serviceKey)}`);
+        const data = await res.json();
+        if (data.stations && data.stations.length > 0) {
+          targetStId = data.stations[0].id;
+          // Update the station in our list with the real stId and arsId
+          setStations(prev => prev.map(s => {
+            if (s.id === stationId) {
+              return { 
+                ...s, 
+                stId: targetStId, 
+                arsId: data.stations[0].arsId, 
+                name: data.stations[0].name,
+                routes: [] // Will be populated dynamically by arrivals
+              };
+            }
+            return s;
+          }));
+        }
+      } catch (e) {
+        console.error("Error finding nearest station:", e);
+      }
+    }
+    
+    if (!targetStId) {
+      setIsLoadingRealtime(false);
+      return;
+    }
+    
+    setIsLoadingRealtime(true);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/realtime/arrivals?stationId=${targetStId}&serviceKey=${encodeURIComponent(serviceKey)}`);
+      const data = await res.json();
+      if (data.arrivals) {
+        setRealtimeArrivals(data.arrivals);
+        
+        // Dynamically update station routes based on real-time arrivals
+        const uniqueRoutes = Array.from(new Set(data.arrivals.map(arr => arr.routeName)));
+        setStations(prev => prev.map(s => {
+          if (s.id === stationId) {
+            return { ...s, routes: uniqueRoutes };
+          }
+          return s;
+        }));
+      }
+    } catch (e) {
+      console.error("Error fetching real-time arrivals:", e);
+    } finally {
+      setIsLoadingRealtime(false);
+    }
+  };
+
+  // Polling for real-time arrivals
+  useEffect(() => {
+    if (realtimeMode && selectedStationId && serviceKey) {
+      fetchRealtimeArrivals(selectedStationId);
+      
+      const interval = setInterval(() => {
+        fetchRealtimeArrivals(selectedStationId);
+      }, 15000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedStationId, realtimeMode, serviceKey, stations.find(s => s.id === selectedStationId)?.stId]);
+
   
   // Destination Finder States
   const [destStationId, setDestStationId] = useState("ST_DOLGOTI");
@@ -310,7 +491,46 @@ export default function Home() {
   }, [selectedStationId, stations]);
 
   // Handle Map Click to Create Station
-  const handleMapClick = (lat, lng) => {
+  const handleMapClick = async (lat, lng) => {
+    if (realtimeMode && serviceKey) {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/realtime/stations-by-pos?lat=${lat}&lng=${lng}&radius=400&serviceKey=${encodeURIComponent(serviceKey)}`);
+        const data = await res.json();
+        if (data.stations && data.stations.length > 0) {
+          // Add newly found real stations to the stations list (avoid duplicates)
+          setStations(prev => {
+            const existingIds = new Set(prev.map(s => s.id));
+            const newStations = data.stations.filter(s => !existingIds.has(s.id)).map(s => ({
+              id: s.id,
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              arsId: s.arsId,
+              stId: s.id, // In real-time API, stationId is the 9-digit stId
+              routes: [], // Will be populated dynamically by arrivals
+              isRealtime: true
+            }));
+            return [...prev, ...newStations];
+          });
+          
+          // Select the closest station
+          const closestStation = data.stations.reduce((prev, curr) => prev.dist < curr.dist ? prev : curr);
+          setSelectedStationId(closestStation.id);
+          
+          if (mapRef.current) {
+            mapRef.current.flyTo([closestStation.lat, closestStation.lng], 16);
+          }
+          setIsLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Error fetching real-time stations:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
     // Find closest neighborhood for a realistic name
     let closestNb = NEIGHBORHOODS[0];
     let minDistance = Infinity;
@@ -691,6 +911,104 @@ export default function Home() {
         {/* Left Column: Controls & Search (4 cols) */}
         <section className="lg:col-span-4 flex flex-col space-y-6">
           
+          {/* Real-time API & Mode Toggle Card */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <RefreshCw className={`h-4 w-4 ${realtimeMode ? 'text-emerald-400 animate-spin-slow' : 'text-indigo-400'}`} />
+                <span>실시간 버스 API 연동</span>
+              </div>
+              {realtimeMode && (
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  LIVE
+                </span>
+              )}
+            </h2>
+            
+            <div className="space-y-4">
+              {/* API Key Input */}
+              <div>
+                <label className="text-xxs font-bold text-slate-400 uppercase tracking-wider block mb-1">공공데이터포털 인증키 (ServiceKey)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={serviceKey}
+                    onChange={(e) => {
+                      setServiceKey(e.target.value);
+                      localStorage.setItem("seoul_bus_service_key", e.target.value);
+                    }}
+                    placeholder="인증키를 입력해주세요"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  {serviceKey && (
+                    <button
+                      onClick={() => {
+                        setServiceKey("");
+                        localStorage.removeItem("seoul_bus_service_key");
+                        setRealtimeMode(false);
+                      }}
+                      className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
+                <a
+                  href="https://www.data.go.kr/data/15000314/openapi.do"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-indigo-400 hover:underline mt-1 block"
+                >
+                  공공데이터포털에서 무료 인증키 발급받기 ↗
+                </a>
+              </div>
+
+              {/* Mode Toggle */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/40">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-slate-200">실시간 데이터 모드</span>
+                  <span className="text-[10px] text-slate-500">실제 서울시 버스 정보 연동</span>
+                </div>
+                <button
+                  disabled={!serviceKey}
+                  onClick={() => setRealtimeMode(!realtimeMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    !serviceKey ? 'opacity-40 cursor-not-allowed bg-slate-800' :
+                    realtimeMode ? 'bg-emerald-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      realtimeMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Status Banner */}
+              <div className={`p-3 rounded-xl border text-xxs flex items-start space-x-2 ${
+                realtimeMode && serviceKey
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }`}>
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  {realtimeMode && serviceKey ? (
+                    <>
+                      <span className="font-bold block mb-0.5">실시간 서울시 버스 API 연동 중</span>
+                      지도 클릭 시 실제 버스 정류소를 검색하고, 실시간 도착 정보를 띠지에 시각화합니다.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold block mb-0.5">가상 시뮬레이션 모드 동작 중</span>
+                      인증키를 등록하고 실시간 모드를 켜면 실제 서울시 버스 정보가 시각화됩니다. 등록 전에는 가상 시뮬레이션 데이터가 표시됩니다.
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 0. Seoul Location & Station Search Card */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center space-x-2">
@@ -779,98 +1097,131 @@ export default function Home() {
 
           {/* 2. Time Simulation Card */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-purple-400" />
-                <span>시간대 설정 (예측)</span>
-              </h2>
-              
-              {/* Play/Pause Button */}
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  isPlaying 
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' 
-                    : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/30'
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-3 w-3 fill-current" />
-                    <span>정지</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-3 w-3 fill-current" />
-                    <span>실시간 재생</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {realtimeMode ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-emerald-400 animate-pulse" />
+                    <span>실시간 서울 시간</span>
+                  </h2>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold animate-pulse">
+                    LIVE
+                  </span>
+                </div>
 
-            {/* Display Target Time */}
-            <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-4 text-center">
-              <div className="text-xxs text-slate-500 font-bold uppercase tracking-widest mb-1">예측 타겟 시간</div>
-              <div className="text-2xl font-mono font-bold text-indigo-300 tracking-tight">
-                {formatDisplayTime(targetTime)}
-              </div>
-              <div className="text-xxs text-slate-400 mt-1 flex items-center justify-center space-x-1">
-                <Calendar className="h-3 w-3 text-slate-500" />
-                <span>2026년 6월 15일 (월요일)</span>
-              </div>
-            </div>
+                {/* Live Clock Display */}
+                <div className="bg-slate-950/60 rounded-xl p-5 border border-emerald-500/20 text-center shadow-lg shadow-emerald-500/5">
+                  <div className="text-xxs text-emerald-500/80 font-bold uppercase tracking-widest mb-1">현재 실시간 시간</div>
+                  <div className="text-3xl font-mono font-bold text-emerald-400 tracking-tight drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                    {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                  </div>
+                  <div className="text-xxs text-slate-400 mt-1.5 flex items-center justify-center space-x-1">
+                    <Calendar className="h-3 w-3 text-slate-500" />
+                    <span>{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</span>
+                  </div>
+                </div>
 
-            {/* Time Slider */}
-            <div className="space-y-2 mb-5">
-              <div className="flex justify-between text-xxs text-slate-500 font-bold">
-                <span>00:00</span>
-                <span>12:00</span>
-                <span>24:00</span>
+                <div className="p-3 bg-slate-950/40 border border-slate-800 rounded-xl text-xxs text-slate-400 leading-relaxed">
+                  <p className="font-bold text-emerald-400 mb-1">ℹ️ 실시간 모드 안내</p>
+                  실시간 모드에서는 서울시 버스 정보 시스템(TOPIS)의 실시간 버스 도착 데이터가 표시되므로 시간 조작이 비활성화됩니다. 가상 시뮬레이션 및 시간대별 혼잡도 예측을 체험하려면 실시간 모드를 꺼주세요.
+                </div>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="1439"
-                value={getMinutesOfDay(targetTime)}
-                onChange={handleSliderChange}
-                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
-              />
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-purple-400" />
+                    <span>시간대 설정 (예측)</span>
+                  </h2>
+                  
+                  {/* Play/Pause Button */}
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                      isPlaying 
+                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' 
+                        : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/30'
+                    }`}
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Pause className="h-3 w-3 fill-current" />
+                        <span>정지</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3 fill-current" />
+                        <span>실시간 재생</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
-            {/* Time Presets */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 block">시간대 프리셋</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPresetTime(8, 30)}
-                  className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
-                >
-                  <span className="font-bold text-rose-400">08:30 (출근)</span>
-                  <span className="text-xxs text-slate-500 mt-0.5">혼잡도 가중치 높음</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(18, 30)}
-                  className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
-                >
-                  <span className="font-bold text-rose-400">18:30 (퇴근)</span>
-                  <span className="text-xxs text-slate-500 mt-0.5">혼잡도 가중치 높음</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(14, 0)}
-                  className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
-                >
-                  <span className="font-bold text-emerald-400">14:00 (낮)</span>
-                  <span className="text-xxs text-slate-500 mt-0.5">원활한 배차 간격</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(22, 30)}
-                  className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
-                >
-                  <span className="font-bold text-sky-400">22:30 (밤)</span>
-                  <span className="text-xxs text-slate-500 mt-0.5">원활한 배차 간격</span>
-                </button>
-              </div>
-            </div>
+                {/* Display Target Time */}
+                <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-4 text-center">
+                  <div className="text-xxs text-slate-500 font-bold uppercase tracking-widest mb-1">예측 타겟 시간</div>
+                  <div className="text-2xl font-mono font-bold text-indigo-300 tracking-tight">
+                    {formatDisplayTime(targetTime)}
+                  </div>
+                  <div className="text-xxs text-slate-400 mt-1 flex items-center justify-center space-x-1">
+                    <Calendar className="h-3 w-3 text-slate-500" />
+                    <span>2026년 6월 15일 (월요일)</span>
+                  </div>
+                </div>
+
+                {/* Time Slider */}
+                <div className="space-y-2 mb-5">
+                  <div className="flex justify-between text-xxs text-slate-500 font-bold">
+                    <span>00:00</span>
+                    <span>12:00</span>
+                    <span>24:00</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1439"
+                    value={getMinutesOfDay(targetTime)}
+                    onChange={handleSliderChange}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Time Presets */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 block">시간대 프리셋</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPresetTime(8, 30)}
+                      className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
+                    >
+                      <span className="font-bold text-rose-400">08:30 (출근)</span>
+                      <span className="text-xxs text-slate-500 mt-0.5">혼잡도 가중치 높음</span>
+                    </button>
+                    <button
+                      onClick={() => setPresetTime(18, 30)}
+                      className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
+                    >
+                      <span className="font-bold text-rose-400">18:30 (퇴근)</span>
+                      <span className="text-xxs text-slate-500 mt-0.5">혼잡도 가중치 높음</span>
+                    </button>
+                    <button
+                      onClick={() => setPresetTime(14, 0)}
+                      className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
+                    >
+                      <span className="font-bold text-emerald-400">14:00 (낮)</span>
+                      <span className="text-xxs text-slate-500 mt-0.5">원활한 배차 간격</span>
+                    </button>
+                    <button
+                      onClick={() => setPresetTime(22, 30)}
+                      className="py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-800 border border-slate-800/80 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition flex flex-col items-center"
+                    >
+                      <span className="font-bold text-sky-400">22:30 (밤)</span>
+                      <span className="text-xxs text-slate-500 mt-0.5">원활한 배차 간격</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -927,6 +1278,123 @@ export default function Home() {
                   <p className="text-base font-bold text-slate-300">정류장을 선택해주세요</p>
                   <p className="text-xs text-slate-500 mt-1 max-w-xs">지도에서 정류장 마커를 클릭하거나 아무 곳이나 클릭하여 전광판을 소환할 수 있습니다.</p>
                 </div>
+              ) : realtimeMode ? (
+                isLoadingRealtime && realtimeArrivals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center text-slate-500">
+                    <RefreshCw className="h-10 w-10 mb-3 text-indigo-500 animate-spin" />
+                    <p className="text-base font-bold text-slate-300">실시간 도착 정보 조회 중...</p>
+                    <p className="text-xs text-slate-500 mt-1">서울시 버스 정보 시스템에서 실시간 데이터를 가져오고 있습니다.</p>
+                  </div>
+                ) : realtimeArrivals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center text-slate-500">
+                    <Info className="h-12 w-12 mb-3 text-indigo-500/40" />
+                    <p className="text-base font-bold text-slate-300">도착 예정 버스 없음</p>
+                    <p className="text-xs text-slate-500 mt-1">현재 이 정류소에 도착 예정인 실시간 버스 정보가 없습니다.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {realtimeArrivals.map(arr => {
+                      const route = getRouteDetailsFromType(arr.routeType, arr.routeName);
+                      
+                      const activeBuses = [];
+                      const min1 = getMinutesLeft(arr.exps1, arr.arrmsg1);
+                      if (min1 !== null && min1 <= 15) {
+                        activeBuses.push({
+                          id: `${arr.routeId}_BUS_1`,
+                          minutesLeft: min1,
+                          status: arr.congestion1 === '5' ? 'CROWDED' : 'NORMAL',
+                          msg: arr.arrmsg1
+                        });
+                      }
+                      const min2 = getMinutesLeft(arr.exps2, arr.arrmsg2);
+                      if (min2 !== null && min2 <= 15) {
+                        activeBuses.push({
+                          id: `${arr.routeId}_BUS_2`,
+                          minutesLeft: min2,
+                          status: arr.congestion2 === '5' ? 'CROWDED' : 'NORMAL',
+                          msg: arr.arrmsg2
+                        });
+                      }
+
+                      return (
+                        <div key={arr.routeId} className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-4 relative">
+                          {/* Route Header Info */}
+                          <div className="flex items-center justify-between mb-3 border-b border-slate-800/40 pb-2">
+                            <div className="flex items-center space-x-2">
+                              <span className={`text-sm font-extrabold px-2.5 py-0.5 rounded-lg text-white`} style={{ backgroundColor: route.hex }}>
+                                {route.name}
+                              </span>
+                              <span className="text-xxs text-slate-400 font-medium">{route.type} 버스</span>
+                            </div>
+                            {arr.arsId && (
+                              <span className="text-xxs text-slate-500 font-mono">정류소 번호: {arr.arsId}</span>
+                            )}
+                          </div>
+
+                          {/* The Horizontal Track (띠지) */}
+                          <div className="h-16 relative bg-slate-900/40 border border-slate-800/50 rounded-lg overflow-hidden flex items-center px-4">
+                            {/* Track Line */}
+                            <div className="absolute left-4 right-4 h-1.5 bg-slate-800 rounded-full border-t border-slate-700/30" />
+                            
+                            {/* Arrival Marker at the Right End */}
+                            <div className="absolute right-4 flex flex-col items-center justify-center z-20">
+                              <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 animate-ping absolute" />
+                              <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 z-10" />
+                              <span className="text-[9px] font-extrabold text-indigo-400 mt-1">도착지</span>
+                            </div>
+
+                            {/* Left End Marker (15 mins away) */}
+                            <div className="absolute left-4 flex flex-col items-center justify-center z-10 opacity-40">
+                              <div className="w-2 h-2 rounded-full bg-slate-600" />
+                              <span className="text-[8px] font-bold text-slate-500 mt-1">15분전</span>
+                            </div>
+
+                            {/* Bus Nodes moving on the Track */}
+                            {activeBuses.length === 0 ? (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-xxs text-slate-600 font-medium italic">15분 이내 도착 예정 버스 없음</span>
+                              </div>
+                            ) : (
+                              activeBuses.map(bus => {
+                                const leftPercent = ((15 - bus.minutesLeft) / 15) * 80 + 5;
+                                const isCrowded = bus.status === 'CROWDED';
+                                
+                                return (
+                                  <div
+                                    key={bus.id}
+                                    className="absolute -translate-y-1/2 transition-all duration-1000 ease-out z-20 flex flex-col items-center"
+                                    style={{ left: `${leftPercent}%`, top: '50%' }}
+                                  >
+                                    {/* Bus Node Card */}
+                                    <div
+                                      className={`px-3 py-1.5 rounded-xl border flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer ${
+                                        isCrowded 
+                                          ? 'bg-rose-500/90 text-white border-rose-400 shadow-rose-500/20' 
+                                          : 'text-white shadow-black/40'
+                                      }`}
+                                      style={{ 
+                                        backgroundColor: isCrowded ? undefined : route.hex,
+                                        borderColor: isCrowded ? undefined : `${route.hex}cc`
+                                      }}
+                                    >
+                                      <span className="text-[10px] font-extrabold tracking-tight">{route.name}</span>
+                                      <span className="text-[9px] font-bold opacity-90 mt-0.5 whitespace-nowrap">
+                                        {bus.msg}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Little indicator dot */}
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white border border-slate-950 mt-1 shadow" />
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="space-y-6">
                   {selectedStation.routes.map(routeId => {
