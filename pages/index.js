@@ -15,365 +15,409 @@ import {
   ArrowRight, 
   TrendingUp, 
   Database, 
-  Server,
-  Volume2
+  Server
 } from 'lucide-react';
 
-// Helper to parse ISO datetime or format it
-const formatTimeStr = (date) => {
-  return date.toISOString().split('.')[0] + 'Z';
+// Pre-defined popular stations in Seoul with real coordinates
+const PREDEFINED_STATIONS = [
+  { id: "ST_GANGNAM", name: "강남역 정류소", lat: 37.4979, lng: 127.0276, routes: ["M2341", "01번", "N62번", "147번"] },
+  { id: "ST_HONGDAE", name: "홍대입구역 정류소", lat: 37.5575, lng: 126.9244, routes: ["273번", "01번", "N62번", "65번"] },
+  { id: "ST_MYEONGDONG", name: "명동역 정류소", lat: 37.5609, lng: 126.9861, routes: ["147번", "65번", "01번", "N13번"] },
+  { id: "ST_SEOUL_STN", name: "서울역 버스환승센터", lat: 37.5546, lng: 126.9706, routes: ["720번", "120번", "M2341", "N13번"] },
+  { id: "ST_YEOUIDO", name: "여의도역 정류소", lat: 37.5216, lng: 126.9242, routes: ["M2341", "720번", "01번", "N62번"] },
+  { id: "ST_JONGNO", name: "종로3가역 정류소", lat: 37.5704, lng: 126.9922, routes: ["273번", "147번", "720번", "N13번"] },
+  { id: "ST_SINCHON", name: "신촌역 정류소", lat: 37.5552, lng: 126.9369, routes: ["273번", "65번", "01번", "N62번"] },
+  { id: "ST_JAMSIL", name: "잠실역 정류소", lat: 37.5133, lng: 127.1001, routes: ["M2341", "65번", "01번", "N13번"] },
+  { id: "ST_DONGDAEMUN", name: "동대문역 정류소", lat: 37.5714, lng: 127.0092, routes: ["147번", "720번", "273번", "N13번"] },
+  { id: "ST_CHEONGNYANGNI", name: "청량리역 환승센터", lat: 37.5802, lng: 127.0448, routes: ["147번", "273번", "120번", "720번"] },
+  { id: "ST_GWANGHWAMUN", name: "광화문역 정류소", lat: 37.5716, lng: 126.9768, routes: ["720번", "147번", "01번", "N62번"] },
+  { id: "ST_HYEHWA", name: "혜화역 대학로 정류소", lat: 37.5822, lng: 127.0019, routes: ["273번", "120번", "01번", "N13번"] },
+  { id: "ST_HUFS", name: "한국외대 정문", lat: 37.5973, lng: 127.0578, routes: ["65번", "273번", "147번", "N13번"] },
+  { id: "ST_KYUNGHEE", name: "경희대후문", lat: 37.5954, lng: 127.0524, routes: ["65번", "147번", "120번", "N13번"] },
+  { id: "ST_DOLGOTI", name: "돌곶이역 2번 출구", lat: 37.6105, lng: 127.0565, routes: ["120번", "147번", "M2341", "01번", "N62번"] },
+  { id: "ST_SINIMUN", name: "신이문역 정류소", lat: 37.6018, lng: 127.0615, routes: ["65번", "120번", "147번", "N62번"] },
+  { id: "ST_SEOKGWAN", name: "석관동주민센터", lat: 37.6062, lng: 127.0622, routes: ["120번", "147번", "65번", "N13번"] }
+];
+
+// Route details with types and colors
+const ROUTE_DETAILS = {
+  "65번": { name: "65번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
+  "120번": { name: "120번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
+  "147번": { name: "147번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
+  "273번": { name: "273번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
+  "720번": { name: "720번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 11 },
+  "M2341": { name: "M2341", type: "광역", color: "rose", hex: "#ef4444", interval: 15 },
+  "01번": { name: "01번", type: "순환", color: "amber", hex: "#f59e0b", interval: 12 },
+  "N13번": { name: "N13번", type: "심야", color: "indigo", hex: "#3730a3", interval: 25 },
+  "N62번": { name: "N62번", type: "심야", color: "indigo", hex: "#3730a3", interval: 30 }
 };
 
-const formatDisplayTime = (isoStr) => {
-  try {
-    const d = new Date(isoStr);
-    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  } catch (e) {
-    return isoStr;
-  }
+// Seoul & Gyeonggi neighborhoods for dynamic naming of clicked locations
+const NEIGHBORHOODS = [
+  { name: "서초동", lat: 37.49, lng: 127.01 },
+  { name: "삼성동", lat: 37.51, lng: 127.06 },
+  { name: "여의도동", lat: 37.52, lng: 126.92 },
+  { name: "상암동", lat: 37.58, lng: 126.89 },
+  { name: "이태원동", lat: 37.53, lng: 126.99 },
+  { name: "인사동", lat: 37.57, lng: 126.98 },
+  { name: "성수동", lat: 37.54, lng: 127.05 },
+  { name: "이문동", lat: 37.59, lng: 127.06 },
+  { name: "신촌동", lat: 37.55, lng: 126.93 },
+  { name: "목동", lat: 37.53, lng: 126.87 },
+  { name: "대학로", lat: 37.58, lng: 127.00 },
+  { name: "잠실동", lat: 37.51, lng: 127.08 },
+  { name: "청량리동", lat: 37.58, lng: 127.04 },
+  { name: "압구정동", lat: 37.52, lng: 127.03 },
+  { name: "합정동", lat: 37.54, lng: 126.91 },
+  // 경기도 및 남양주/마석 주변 추가 (사용자 실제 위치 대응)
+  { name: "화도읍 마석우리", lat: 37.65, lng: 127.31 },
+  { name: "평내동", lat: 37.63, lng: 127.24 },
+  { name: "호평동", lat: 37.64, lng: 127.25 },
+  { name: "금곡동", lat: 37.63, lng: 127.21 },
+  { name: "다산동", lat: 37.62, lng: 127.16 },
+  { name: "구리시 수택동", lat: 37.59, lng: 127.14 },
+  { name: "하남시 신장동", lat: 37.54, lng: 127.22 }
+];
+
+const formatDisplayTime = (date) => {
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 };
 
 export default function Home() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   
-  // Selected Route & Station
-  const [selectedRoute, setSelectedRoute] = useState({
-    id: "R001",
-    name: "65번",
-    interval_mins: 10,
-    color: "emerald"
-  });
-  const [stations, setStations] = useState([
-    { id: "S001", name: "경희대후문", sequence: 1 },
-    { id: "S002", name: "한국외대 후문", sequence: 2 },
-    { id: "S003", name: "한국외대 정문", sequence: 3 },
-    { id: "S004", name: "돌곶이역 2번 출구", sequence: 4 },
-    { id: "S005", name: "석관동주민센터", sequence: 5 },
-    { id: "S006", name: "신이문역", sequence: 6 }
-  ]);
-  const [selectedStationId, setSelectedStationId] = useState("S003"); // 한국외대 정문
+  // Selected Station & Map States
+  const [stations, setStations] = useState(PREDEFINED_STATIONS);
+  const [selectedStationId, setSelectedStationId] = useState("ST_HUFS"); // Default: HUFS
+  const [userLocation, setUserLocation] = useState(null);
   const [targetTime, setTargetTime] = useState(new Date("2026-06-15T18:30:00Z"));
-  const [timelineData, setTimelineData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState("checking"); // 'api' | 'local'
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Destination Finder States
-  const [destStationId, setDestStationId] = useState("S004"); // 돌곶이역 2번 출구
+  const [destStationId, setDestStationId] = useState("ST_DOLGOTI");
   const [destHour, setDestHour] = useState("18");
   const [destMinute, setDestMins] = useState("30");
   const [finderResult, setFinderResult] = useState(null);
 
+  const mapRef = useRef(null);
+  const markersRef = useRef({});
+  const userMarkerRef = useRef(null);
   const playIntervalRef = useRef(null);
 
-  // Search for routes on backend
-  const handleSearch = async (e) => {
+  const selectedStation = stations.find(s => s.id === selectedStationId);
+
+  // Check backend connection on mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/");
+        if (res.ok) {
+          setDataSource("api");
+        } else {
+          setDataSource("local");
+        }
+      } catch (e) {
+        setDataSource("local");
+      }
+    };
+    checkBackend();
+  }, []);
+
+  // Initialize Leaflet Map
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Load Leaflet script dynamically
+    const script = document.createElement('script');
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
+    script.crossOrigin = "";
+    
+    script.onload = () => {
+      const L = window.L;
+      if (!L) return;
+
+      // Initialize map centered on Seoul
+      const map = L.map('map', {
+        zoomControl: true,
+        attributionControl: true
+      }).setView([37.5665, 126.9780], 12);
+
+      mapRef.current = map;
+
+      // CartoDB Dark Matter Tile Layer
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Render Station Markers
+      renderStationMarkers();
+
+      // Click on Map to Create Station
+      map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        handleMapClick(lat, lng);
+      });
+
+      // Get User Location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const userCoords = [latitude, longitude];
+            setUserLocation(userCoords);
+
+            // Add User Location Marker
+            const userIcon = L.divIcon({
+              className: 'custom-user-icon',
+              html: `
+                <div class="relative flex items-center justify-center w-6 h-6">
+                  <div class="absolute w-6 h-6 rounded-full bg-sky-500 opacity-40 animate-ping"></div>
+                  <div class="relative w-3.5 h-3.5 rounded-full bg-sky-500 border-2 border-white shadow-md"></div>
+                </div>
+              `,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            });
+
+            if (userMarkerRef.current) {
+              userMarkerRef.current.remove();
+            }
+            userMarkerRef.current = L.marker(userCoords, { icon: userIcon }).addTo(map);
+
+            // Smooth fly to user location
+            map.flyTo(userCoords, 15);
+
+            // Dynamically create a station at user's exact location
+            const userStationId = `ST_USER_${Date.now()}`;
+            
+            // Fallback neighborhood name from local list
+            let neighborhoodName = "내 위치";
+            let minDistance = Infinity;
+            NEIGHBORHOODS.forEach(nb => {
+              const dist = Math.sqrt(Math.pow(nb.lat - latitude, 2) + Math.pow(nb.lng - longitude, 2));
+              if (dist < minDistance) {
+                minDistance = dist;
+                neighborhoodName = nb.name;
+              }
+            });
+            
+            const userStationName = `${neighborhoodName} 내 위치 정류소`;
+            
+            // Assign 3-4 routes deterministically based on coordinates
+            const allRouteKeys = Object.keys(ROUTE_DETAILS);
+            const seed = Math.floor((latitude + longitude) * 1000);
+            const shuffledRoutes = [...allRouteKeys].sort(() => 0.5 - ((seed % 10) / 10));
+            const assignedRoutes = shuffledRoutes.slice(0, 3 + (seed % 2));
+            
+            const userStation = {
+              id: userStationId,
+              name: userStationName,
+              lat: latitude,
+              lng: longitude,
+              routes: assignedRoutes
+            };
+            
+            setStations(prev => {
+              const filtered = prev.filter(s => !s.id.startsWith("ST_USER_"));
+              return [...filtered, userStation];
+            });
+            setSelectedStationId(userStationId);
+
+            // Fetch real name via Nominatim reverse geocoding
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
+              headers: {
+                'User-Agent': 'BusArrivalPredictionPrototype/1.0'
+              }
+            })
+              .then(res => res.json())
+              .then(data => {
+                const addr = data.address;
+                const realName = addr.neighbourhood || addr.suburb || addr.village || addr.town || addr.city_district || neighborhoodName;
+                const updatedName = `${realName} 내 위치 정류소`;
+                
+                setStations(prev => prev.map(s => {
+                  if (s.id === userStationId) {
+                    return { ...s, name: updatedName };
+                  }
+                  return s;
+                }));
+              })
+              .catch(err => console.error("Nominatim user location error:", err));
+          },
+          (error) => {
+            console.warn("Geolocation error:", error.message);
+            // Default fly to HUFS to show zoom-in effect
+            map.flyTo([37.5973, 127.0578], 14);
+          }
+        );
+      } else {
+        map.flyTo([37.5973, 127.0578], 14);
+      }
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      script.remove();
+    };
+  }, []);
+
+  // Render Station Markers
+  const renderStationMarkers = () => {
+    const L = window.L;
+    if (!L || !mapRef.current) return;
+
+    // Clear existing markers
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
+
+    stations.forEach(st => {
+      const isSelected = st.id === selectedStationId;
+      
+      const stationIcon = L.divIcon({
+        className: isSelected ? 'custom-station-selected' : 'custom-station',
+        html: isSelected 
+          ? `<div class="w-8 h-8 rounded-full bg-indigo-500 border-2 border-white shadow-xl flex items-center justify-center text-white font-extrabold text-xs animate-bounce shadow-indigo-500/50 ring-4 ring-indigo-500/30">📍</div>`
+          : `<div class="w-6 h-6 rounded-full bg-indigo-600 border-2 border-slate-100 shadow-lg flex items-center justify-center text-white font-extrabold text-[10px] hover:scale-110 transition-transform shadow-indigo-500/30">📍</div>`,
+        iconSize: isSelected ? [32, 32] : [24, 24],
+        iconAnchor: isSelected ? [16, 16] : [12, 12]
+      });
+
+      const marker = L.marker([st.lat, st.lng], { icon: stationIcon })
+        .addTo(mapRef.current)
+        .on('click', () => {
+          setSelectedStationId(st.id);
+          mapRef.current.flyTo([st.lat, st.lng], 16);
+        });
+      
+      markersRef.current[st.id] = marker;
+    });
+  };
+
+  // Re-render markers when selectedStationId or stations list changes
+  useEffect(() => {
+    renderStationMarkers();
+  }, [selectedStationId, stations]);
+
+  // Handle Map Click to Create Station
+  const handleMapClick = (lat, lng) => {
+    // Find closest neighborhood for a realistic name
+    let closestNb = NEIGHBORHOODS[0];
+    let minDistance = Infinity;
+    
+    NEIGHBORHOODS.forEach(nb => {
+      const dist = Math.sqrt(Math.pow(nb.lat - lat, 2) + Math.pow(nb.lng - lng, 2));
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestNb = nb;
+      }
+    });
+
+    const newStationId = `ST_CLICK_${Date.now()}`;
+    const newStationName = `${closestNb.name} 가상 정류소`;
+    
+    // Deterministically assign 3-4 routes based on coordinates
+    const allRouteKeys = Object.keys(ROUTE_DETAILS);
+    const seed = Math.floor((lat + lng) * 1000);
+    const shuffledRoutes = [...allRouteKeys].sort(() => 0.5 - ((seed % 10) / 10));
+    const assignedRoutes = shuffledRoutes.slice(0, 3 + (seed % 2)); // 3 or 4 routes
+
+    const newStation = {
+      id: newStationId,
+      name: newStationName,
+      lat,
+      lng,
+      routes: assignedRoutes
+    };
+
+    setStations(prev => [...prev, newStation]);
+    setSelectedStationId(newStationId);
+    
+    if (mapRef.current) {
+      mapRef.current.flyTo([lat, lng], 16);
+    }
+
+    // Fetch real name via Nominatim reverse geocoding
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`, {
+      headers: {
+        'User-Agent': 'BusArrivalPredictionPrototype/1.0'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        const addr = data.address;
+        const realName = addr.neighbourhood || addr.suburb || addr.village || addr.town || addr.city_district || closestNb.name;
+        const updatedName = `${realName} 가상 정류소`;
+        
+        setStations(prev => prev.map(s => {
+          if (s.id === newStationId) {
+            return { ...s, name: updatedName };
+          }
+          return s;
+        }));
+      })
+      .catch(err => console.error("Nominatim click error:", err));
+  };
+
+  // Move Map to User Location
+  const handleMoveToUserLocation = () => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.flyTo(userLocation, 16);
+    } else {
+      alert("사용자의 현재 위치를 가져오는 중이거나 권한이 거부되었습니다.");
+    }
+  };
+
+  // Map search handler
+  const handleMapSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    try {
-      const res = await fetch(`http://localhost:8000/api/v1/bus/search-routes?query=${encodeURIComponent(searchQuery)}`);
-      if (!res.ok) throw new Error("검색 실패");
-      const data = await res.json();
-      setSearchResults(data);
-    } catch (err) {
-      console.error("Search error:", err);
-      // Local fallback search
-      const query = searchQuery.trim();
-      const localResults = [
-        { id: "R001", name: "65번", interval_mins: 10 },
-        { id: "R002", name: "241번", interval_mins: 12 },
-        { id: "147", name: "147번", interval_mins: 8 },
-        { id: "273", name: "273번", interval_mins: 9 },
-        { id: "120", name: "120번", interval_mins: 10 },
-        { id: "720", name: "720번", interval_mins: 11 }
-      ].filter(r => r.name.includes(query) || r.id.includes(query));
-      setSearchResults(localResults);
-    } finally {
-      setIsSearching(false);
-    }
+    performSearch(searchQuery);
   };
 
-  // Select a route from search results
-  const handleSelectRoute = async (route) => {
-    const color = parseInt(route.id) % 2 === 0 ? "sky" : "emerald";
-    setSelectedRoute({ ...route, color });
-    setSearchResults([]);
-    setSearchQuery("");
-    
-    setIsLoading(true);
-    try {
-      // Fetch stations for this route from backend
-      // In our backend, calling search-routes automatically caches stations in SQLite,
-      // so we can query the timeline directly using the first station of the route.
-      // Let's first fetch the timeline using a dummy station ID format S_ROUTEID_1 to trigger dynamic loading
-      const firstStationId = `S_${route.id}_1`;
-      const timeStr = formatTimeStr(targetTime);
-      
-      const res = await fetch(`http://localhost:8000/api/v1/bus-timeline?target_station_id=${firstStationId}&target_time=${timeStr}`);
-      if (!res.ok) throw new Error("노선 정류장 데이터 로드 실패");
-      
-      // We can also query the full route stations from backend if we want, but we can just parse the timeline response
-      // Let's fetch all stations for this route by calling a timeline query on a station, which loads them into DB.
-      // To get the full list of stations, let's do a quick fetch or use mock fallback
-      // For simplicity, we can fetch the timeline for the first station which returns the first few stations.
-      // To make it fully dynamic, let's load a standard set of stations for the selected route.
-      let loadedStations = [];
-      if (route.id === "R001") {
-        loadedStations = [
-          { id: "S001", name: "경희대후문", sequence: 1 },
-          { id: "S002", name: "한국외대 후문", sequence: 2 },
-          { id: "S003", name: "한국외대 정문", sequence: 3 },
-          { id: "S004", name: "돌곶이역 2번 출구", sequence: 4 },
-          { id: "S005", name: "석관동주민센터", sequence: 5 },
-          { id: "S006", name: "신이문역", sequence: 6 }
-        ];
-      } else if (route.id === "R002") {
-        loadedStations = [
-          { id: "S101", name: "경희대후문", sequence: 1 },
-          { id: "S102", name: "한국외대 후문", sequence: 2 },
-          { id: "S103", name: "한국외대 정문", sequence: 3 },
-          { id: "S104", name: "돌곶이역 2번 출구", sequence: 4 },
-          { id: "S105", name: "석관동주민센터", sequence: 5 },
-          { id: "S106", name: "신이문역", sequence: 6 }
-        ];
-      } else {
-        // Dynamic routes (like 147, 273, etc.)
-        // We'll generate a realistic list of stations for this route
-        const popularStations = {
-          "147": [
-            "월계동기점", "경희대후문", "한국외대 후문", "한국외대 정문", "외대역앞", 
-            "돌곶이역", "석관동주민센터", "신이문역", "청량리역", "제기동역", 
-            "신설동역", "동대문역", "종로5가", "종로3가", "을지로입구", "명동역"
-          ],
-          "273": [
-            "신내동기점", "중랑구청", "상봉역", "중화역", "이문동현대아파트", 
-            "한국외대 정문", "경희대입구", "떡전교사거리", "청량리역", "고려대역", 
-            "안암역", "보문역", "혜화역(대학로)", "종로5가", "종로1가", "신촌역"
-          ],
-          "120": [
-            "우이동기점", "덕성여대앞", "수유역", "미아사거리역", "월곡역", 
-            "돌곶이역 2번 출구", "석계역", "신이문역", "중랑교", "청량리역"
-          ],
-          "720": [
-            "진관공영차고지", "구파발역", "연신내역", "불광역", "홍제역", 
-            "독립문역", "서대문역", "광화문역", "종로2가", "동대문역", "청량리역"
-          ]
-        };
-        
-        const names = popularStations[route.id] || [
-          "서울역", "시청앞", "광화문", "종로3가", "동대문", "신설동", "청량리", 
-          "회기역", "외대앞", "경희대후문", "한국외대 정문", "돌곶이역", "석계역"
-        ];
-        
-        loadedStations = names.map((name, i) => ({
-          id: `S_${route.id}_${i+1}`,
-          name,
-          sequence: i+1
-        }));
-      }
-      
-      setStations(loadedStations);
-      // Pick a middle station as default
-      const midIdx = Math.floor(loadedStations.length / 2);
-      const defaultStationId = loadedStations[midIdx]?.id || loadedStations[0]?.id;
-      setSelectedStationId(defaultStationId);
-      setDestStationId(loadedStations[midIdx + 1]?.id || loadedStations[loadedStations.length - 1]?.id);
-      setFinderResult(null);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleQuickSearch = (landmark) => {
+    setSearchQuery(landmark);
+    performSearch(landmark);
   };
 
-  // Fetch timeline data
-  const fetchTimeline = async (stationId, time) => {
-    setIsLoading(true);
-    setError(null);
-    const timeStr = formatTimeStr(time);
-    
-    try {
-      // Try to fetch from FastAPI backend
-      const res = await fetch(`http://localhost:8000/api/v1/bus-timeline?target_station_id=${stationId}&target_time=${timeStr}`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+  const performSearch = (query) => {
+    // 1. Search in predefined stations
+    const matchedStation = stations.find(s => s.name.includes(query));
+    if (matchedStation) {
+      setSelectedStationId(matchedStation.id);
+      if (mapRef.current) {
+        mapRef.current.flyTo([matchedStation.lat, matchedStation.lng], 16);
       }
-      const data = await res.json();
-      setTimelineData(data);
-      setDataSource("api");
-    } catch (err) {
-      console.warn("FastAPI Backend unreachable, falling back to local simulation:", err.message);
-      // Fallback simulation
-      const localData = generateLocalMockTimeline(stationId, timeStr);
-      setTimelineData(localData);
-      setDataSource("local");
-    } finally {
-      setIsLoading(false);
+      return;
     }
+
+    // 2. Search in neighborhoods
+    const matchedNb = NEIGHBORHOODS.find(nb => nb.name.includes(query));
+    if (matchedNb) {
+      if (mapRef.current) {
+        mapRef.current.flyTo([matchedNb.lat, matchedNb.lng], 15);
+      }
+      return;
+    }
+
+    alert(`'${query}'에 해당하는 정류장이나 지역을 찾지 못했습니다. 다른 키워드로 검색해보세요.`);
   };
 
-  // Local Mock Generator (Fallback in case backend is offline)
-  const generateLocalMockTimeline = (targetStationId, targetTimeStr) => {
-    const targetTime = new Date(targetTimeStr);
-    
-    // Find station and route
-    let targetStation = stations.find(st => st.id === targetStationId);
-    if (!targetStation) return null;
-    
-    const allStations = stations;
-    const targetIdx = allStations.findIndex(s => s.id === targetStationId);
-    const N = allStations.length;
-    
-    // 3-station window
-    let filteredStations = [];
-    if (N <= 3) {
-      filteredStations = allStations;
-    } else {
-      let start = 0;
-      if (targetIdx === 0) {
-        start = 0;
-      } else if (targetIdx === N - 1) {
-        start = N - 3;
-      } else {
-        start = targetIdx - 1;
-      }
-      filteredStations = allStations.slice(start, start + 3);
-    }
-    
-    const filteredIds = new Set(filteredStations.map(s => s.id));
-    
-    // Generate dispatches
-    const startDt = new Date(targetTime.getTime() - 2 * 60 * 60 * 1000);
-    const endDt = new Date(targetTime.getTime() + 1 * 60 * 60 * 1000);
-    
-    // Align start to top of hour
-    const alignedStart = new Date(startDt);
-    alignedStart.setMinutes(0, 0, 0);
-    
-    const dispatches = [];
-    let currentDispatch = new Date(alignedStart);
-    while (currentDispatch <= endDt) {
-      if (currentDispatch >= startDt) {
-        dispatches.push(new Date(currentDispatch));
-      }
-      currentDispatch.setMinutes(currentDispatch.getMinutes() + selectedRoute.interval_mins);
-    }
-    
-    const activeBuses = [];
-    
-    // Simple deterministic hash based on string
-    const getSeededRandom = (seedStr) => {
-      let hash = 0;
-      for (let i = 0; i < seedStr.length; i++) {
-        hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return () => {
-        const x = Math.sin(hash++) * 10000;
-        return x - Math.floor(x);
-      };
-    };
-    
-    for (const dispatchTime of dispatches) {
-      const arrivalTimes = {};
-      let currentTime = new Date(dispatchTime);
-      arrivalTimes[allStations[0].id] = new Date(currentTime);
-      
-      for (let k = 1; k < N; k++) {
-        const prevStation = allStations[k - 1];
-        const currStation = allStations[k];
-        const departureTime = arrivalTimes[prevStation.id];
-        
-        const hour = departureTime.getHours();
-        const isRush = (hour >= 7 && hour < 9) || (hour >= 18 && hour < 20);
-        
-        const seedStr = `${selectedRoute.id}_${dispatchTime.toISOString()}_${k}`;
-        const rng = getSeededRandom(seedStr);
-        
-        let noise = 0;
-        if (isRush) {
-          noise = 120 + rng() * 180; // 120 to 300 seconds
-        } else {
-          noise = -30 + rng() * 60; // -30 to 30 seconds
-        }
-        
-        const segmentTravelTime = 180 + noise; // 3 mins base + noise
-        currentTime = new Date(departureTime.getTime() + segmentTravelTime * 1000);
-        arrivalTimes[currStation.id] = new Date(currentTime);
-      }
-      
-      // Find active segments at targetTime
-      for (let k = 1; k < N; k++) {
-        const prevStation = allStations[k - 1];
-        const currStation = allStations[k];
-        const tPrev = arrivalTimes[prevStation.id];
-        const tCurr = arrivalTimes[currStation.id];
-        
-        if (tPrev <= targetTime && targetTime < tCurr) {
-          if (filteredIds.has(prevStation.id) && filteredIds.has(currStation.id)) {
-            const totalSeconds = (tCurr - tPrev) / 1000;
-            const elapsedSeconds = (targetTime - tPrev) / 1000;
-            const progressRate = Math.round((elapsedSeconds / totalSeconds) * 100) / 100;
-            
-            const estimatedSecondsLeft = (tCurr - targetTime) / 1000;
-            let estimatedMinutesLeft = Math.round(estimatedSecondsLeft / 60);
-            if (estimatedMinutesLeft < 1) estimatedMinutesLeft = 1;
-            
-            const hour = tPrev.getHours();
-            const isRush = (hour >= 7 && hour < 9) || (hour >= 18 && hour < 20);
-            const status = isRush ? "CROWDED" : "NORMAL";
-            
-            const prefix = selectedRoute.id === "R001" ? "M" : "B";
-            const hoursStr = String(dispatchTime.getHours()).padStart(2, '0');
-            const minsStr = String(dispatchTime.getMinutes()).padStart(2, '0');
-            const busId = `${prefix}${hoursStr}${minsStr}`;
-            
-            activeBuses.push({
-              busId,
-              busName: selectedRoute.name,
-              fromStationId: prevStation.id,
-              toStationId: currStation.id,
-              progressRate,
-              estimatedMinutesLeft,
-              status
-            });
-          }
-          break;
-        }
-      }
-    }
-    
-    return {
-      searchContext: {
-        targetTime: targetTimeStr,
-        isMocked: true,
-        isLocal: true
-      },
-      timeline: {
-        stations: filteredStations.map(s => ({ id: s.id, name: s.name, sequence: s.sequence }))
-      },
-      activeBuses
-    };
-  };
-
-  // Trigger fetch when station or time changes
-  useEffect(() => {
-    fetchTimeline(selectedStationId, targetTime);
-  }, [selectedStationId, targetTime]);
-
-  // Handle Play/Pause simulation
+  // Play/Pause Simulation Effect
   useEffect(() => {
     if (isPlaying) {
       playIntervalRef.current = setInterval(() => {
-        setTargetTime(prev => {
-          const nextTime = new Date(prev.getTime() + 60 * 1000); // Add 1 minute
-          return nextTime;
-        });
+        setTargetTime(prev => new Date(prev.getTime() + 60 * 1000)); // Add 1 minute
       }, 1000); // 1 second real-time = 1 minute simulation
     } else {
       if (playIntervalRef.current) {
@@ -409,114 +453,185 @@ export default function Home() {
     return date.getUTCHours() * 60 + date.getUTCMinutes();
   };
 
+  // Deterministic Multi-Route Simulation Engine
+  const getSimulatedBuses = () => {
+    if (!selectedStation) return {};
+    
+    const minutesOfDay = getMinutesOfDay(targetTime);
+    const isRushHour = (minutesOfDay >= 450 && minutesOfDay <= 570) || (minutesOfDay >= 1050 && minutesOfDay <= 1170); // 07:30-09:30, 17:30-19:30
+    const isNightHour = (minutesOfDay >= 1380 || minutesOfDay < 240); // 23:00-04:00
+    
+    const results = {};
+    
+    selectedStation.routes.forEach(routeId => {
+      const route = ROUTE_DETAILS[routeId];
+      if (!route) return;
+      
+      // Night hour rules
+      const isNightRoute = route.type === "심야";
+      if (isNightHour && !isNightRoute) {
+        results[routeId] = [];
+        return;
+      }
+      if (!isNightHour && isNightRoute) {
+        results[routeId] = [];
+        return;
+      }
+      
+      // Seed offset based on routeId and station ID
+      let seed = 0;
+      const seedStr = `${routeId}_${selectedStation.id}`;
+      for (let i = 0; i < seedStr.length; i++) {
+        seed += seedStr.charCodeAt(i);
+      }
+      
+      const offset = seed % route.interval;
+      
+      // Generate scheduled arrival times
+      const arrivals = [];
+      let currentArrival = offset;
+      while (currentArrival < 1440) {
+        arrivals.push(currentArrival);
+        currentArrival += route.interval;
+      }
+      
+      const activeBuses = [];
+      
+      arrivals.forEach((arrivalTime, index) => {
+        let diff = arrivalTime - minutesOfDay;
+        if (diff < -1400) diff += 1440; // wrap around day boundary
+        
+        if (diff >= 0 && diff <= 15) {
+          let minutesLeft = diff;
+          let status = "NORMAL";
+          
+          if (isRushHour) {
+            status = "CROWDED";
+            const delaySeed = (index + seed) % 3;
+            minutesLeft = Math.min(15, minutesLeft + delaySeed);
+          }
+          
+          activeBuses.push({
+            id: `${routeId}_BUS_${index}`,
+            minutesLeft: Math.round(minutesLeft),
+            status
+          });
+        }
+      });
+      
+      activeBuses.sort((a, b) => a.minutesLeft - b.minutesLeft);
+      results[routeId] = activeBuses;
+    });
+    
+    return results;
+  };
+
+  const simulatedBuses = getSimulatedBuses();
+
   // Destination Finder Logic
   const handleFindRoute = () => {
-    // Find route and station
+    if (!selectedStation) {
+      setFinderResult({ error: "출발지 정류장을 먼저 선택해주세요." });
+      return;
+    }
+    
     const destStation = stations.find(s => s.id === destStationId);
-    
     if (!destStation) {
-      setFinderResult({ error: "선택한 노선에 해당 목적지 정류장이 없습니다." });
+      setFinderResult({ error: "목적지 정류장을 찾을 수 없습니다." });
       return;
     }
-
-    // Target arrival time
-    const arrivalTime = new Date(targetTime);
-    arrivalTime.setUTCHours(parseInt(destHour), parseInt(destMinute), 0, 0);
-
-    // Let's find the best bus that arrives just before or at arrivalTime
-    const allStations = stations;
-    const destIdx = allStations.findIndex(s => s.id === destStationId);
     
-    if (destIdx === 0) {
-      setFinderResult({ error: "첫 번째 정류장은 목적지로 선택할 수 없습니다 (출발지)." });
+    if (selectedStation.id === destStationId) {
+      setFinderResult({ error: "출발지와 목적지가 같습니다." });
       return;
     }
-
-    // Start station is the one right before, or we can recommend boarding at '한국외대 정문'
-    const boardStation = allStations[Math.max(0, destIdx - 1)];
-
-    // Simulate dispatches to find the matching bus
-    const startDt = new Date(arrivalTime.getTime() - 2 * 60 * 60 * 1000);
-    const endDt = new Date(arrivalTime.getTime() + 1 * 60 * 60 * 1000);
-    const alignedStart = new Date(startDt);
-    alignedStart.setMinutes(0, 0, 0);
     
-    const dispatches = [];
-    let currentDispatch = new Date(alignedStart);
-    while (currentDispatch <= endDt) {
-      if (currentDispatch >= startDt) {
-        dispatches.push(new Date(currentDispatch));
-      }
-      currentDispatch.setMinutes(currentDispatch.getMinutes() + selectedRoute.interval_mins);
+    // Find common routes
+    const commonRoutes = selectedStation.routes.filter(r => destStation.routes.includes(r));
+    if (commonRoutes.length === 0) {
+      setFinderResult({ error: "두 정류장을 동시에 경유하는 직통 노선이 없습니다." });
+      return;
     }
-
-    let bestBus = null;
-    let bestBoardTime = null;
-    let bestArrivalTime = null;
-
-    for (const dispatchTime of dispatches) {
-      const arrivalTimes = {};
-      let currentTime = new Date(dispatchTime);
-      arrivalTimes[allStations[0].id] = new Date(currentTime);
+    
+    // Target arrival time in minutes of the day
+    const targetArrivalMins = parseInt(destHour) * 60 + parseInt(destMinute);
+    
+    let bestRouteId = null;
+    let bestBoardTimeMins = null;
+    let bestArrivalTimeMins = null;
+    
+    commonRoutes.forEach(routeId => {
+      const route = ROUTE_DETAILS[routeId];
+      if (!route) return;
       
-      for (let k = 1; k <= destIdx; k++) {
-        const prevStation = allStations[k - 1];
-        const currStation = allStations[k];
-        const departureTime = arrivalTimes[prevStation.id];
-        
-        const hour = departureTime.getHours();
-        const isRush = (hour >= 7 && hour < 9) || (hour >= 18 && hour < 20);
-        
-        // Deterministic noise
-        let hash = 0;
-        const seedStr = `${selectedRoute.id}_${dispatchTime.toISOString()}_${k}`;
-        for (let i = 0; i < seedStr.length; i++) {
-          hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        const rng = () => {
-          const x = Math.sin(hash++) * 10000;
-          return x - Math.floor(x);
-        };
-        
-        let noise = isRush ? (120 + rng() * 180) : (-30 + rng() * 60);
-        const segmentTravelTime = 180 + noise;
-        currentTime = new Date(departureTime.getTime() + segmentTravelTime * 1000);
-        arrivalTimes[currStation.id] = new Date(currentTime);
+      // Deterministic scheduled arrivals at destination station
+      let destSeed = 0;
+      const destSeedStr = `${routeId}_${destStation.id}`;
+      for (let i = 0; i < destSeedStr.length; i++) {
+        destSeed += destSeedStr.charCodeAt(i);
       }
-
-      const busArrivalAtDest = arrivalTimes[destStation.id];
-      const busBoardAtPrev = arrivalTimes[boardStation.id];
-
-      if (busArrivalAtDest <= arrivalTime) {
-        if (!bestArrivalTime || busArrivalAtDest > bestArrivalTime) {
-          bestArrivalTime = busArrivalAtDest;
-          bestBoardTime = busBoardAtPrev;
-          
-          const prefix = selectedRoute.id === "R001" ? "M" : "B";
-          const hoursStr = String(dispatchTime.getHours()).padStart(2, '0');
-          const minsStr = String(dispatchTime.getMinutes()).padStart(2, '0');
-          bestBus = {
-            busId: `${prefix}${hoursStr}${minsStr}`,
-            busName: selectedRoute.name,
-            status: (bestBoardTime.getHours() >= 18 && bestBoardTime.getHours() < 20) ? "CROWDED" : "NORMAL"
-          };
+      const destOffset = destSeed % route.interval;
+      
+      let bestArrival = null;
+      let minDiff = Infinity;
+      
+      for (let currentArrival = destOffset; currentArrival < 1440; currentArrival += route.interval) {
+        const diff = targetArrivalMins - currentArrival;
+        if (diff >= 0 && diff < minDiff) {
+          minDiff = diff;
+          bestArrival = currentArrival;
         }
       }
-    }
-
-    if (bestBus) {
+      
+      if (bestArrival !== null) {
+        // Travel time based on coordinate distance
+        const latDiff = destStation.lat - selectedStation.lat;
+        const lngDiff = destStation.lng - selectedStation.lng;
+        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+        const travelTimeMins = Math.max(3, Math.round(distance * 120)); // approx 120 mins per degree, min 3 mins
+        
+        const boardTimeMins = bestArrival - travelTimeMins;
+        
+        if (boardTimeMins >= 0) {
+          if (bestArrivalTimeMins === null || bestArrival > bestArrivalTimeMins) {
+            bestRouteId = routeId;
+            bestBoardTimeMins = boardTimeMins;
+            bestArrivalTimeMins = bestArrival;
+          }
+        }
+      }
+    });
+    
+    if (bestRouteId) {
+      const route = ROUTE_DETAILS[bestRouteId];
+      
+      const boardTime = new Date(targetTime);
+      boardTime.setUTCHours(Math.floor(bestBoardTimeMins / 60), bestBoardTimeMins % 60, 0, 0);
+      
+      const arrivalTime = new Date(targetTime);
+      arrivalTime.setUTCHours(Math.floor(bestArrivalTimeMins / 60), bestArrivalTimeMins % 60, 0, 0);
+      
       setFinderResult({
-        bus: bestBus,
-        boardStation,
+        bus: {
+          busId: `${route.type === '지선' ? 'G' : route.type === '간선' ? 'B' : route.type === '광역' ? 'R' : route.type === '순환' ? 'Y' : 'N'}${String(bestBoardTimeMins).padStart(4, '0')}`,
+          busName: route.name,
+          status: (bestBoardTimeMins >= 1080 && bestBoardTimeMins < 1200) ? "CROWDED" : "NORMAL"
+        },
+        boardStation: selectedStation,
         destStation,
-        boardTime: bestBoardTime,
-        arrivalTime: bestArrivalTime,
-        durationMins: Math.round((bestArrivalTime - bestBoardTime) / 60000)
+        boardTime,
+        arrivalTime,
+        durationMins: bestArrivalTimeMins - bestBoardTimeMins
       });
-
-      // Automatically focus the timeline on the boarding station and board time!
-      setSelectedStationId(boardStation.id);
-      setTargetTime(bestBoardTime);
+      
+      // Automatically focus the timeline/time on the board time
+      setTargetTime(boardTime);
+      
+      // Smooth fly map to show both stations
+      if (mapRef.current && window.L) {
+        const bounds = window.L.latLngBounds([selectedStation.lat, selectedStation.lng], [destStation.lat, destStation.lng]);
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      }
     } else {
       setFinderResult({ error: "해당 시간대에 적절한 버스 운행 일정이 없습니다." });
     }
@@ -526,6 +641,8 @@ export default function Home() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Head>
         <title>Interactive Bus Arrival Prediction Prototype</title>
+        {/* Leaflet CSS from CDN */}
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
       </Head>
 
       {/* Header */}
@@ -565,14 +682,6 @@ export default function Home() {
               <span>연결 확인 중...</span>
             )}
           </div>
-
-          <button 
-            onClick={() => fetchTimeline(selectedStationId, targetTime)}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-slate-300 hover:text-white border border-slate-700"
-            title="새로고침"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </header>
 
@@ -582,96 +691,90 @@ export default function Home() {
         {/* Left Column: Controls & Search (4 cols) */}
         <section className="lg:col-span-4 flex flex-col space-y-6">
           
-          {/* 0. Seoul Bus Route Search Card */}
+          {/* 0. Seoul Location & Station Search Card */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center space-x-2">
               <Search className="h-4 w-4 text-indigo-400" />
-              <span>서울 전체 버스 노선 검색</span>
+              <span>정류장 및 지역 검색</span>
             </h2>
             
-            <form onSubmit={handleSearch} className="flex gap-2 mb-3">
+            <form onSubmit={handleMapSearch} className="flex gap-2 mb-3">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="버스 번호 입력 (예: 147, 273, 120)"
+                placeholder="정류장 이름 또는 지역 (예: 강남역, 홍대, 외대)"
                 className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
               />
               <button
                 type="submit"
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center justify-center"
               >
-                {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <span>검색</span>}
+                <span>검색</span>
               </button>
             </form>
 
-            {searchResults.length > 0 && (
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2 max-h-48 overflow-y-auto space-y-1">
-                {searchResults.map(r => (
-                  <button
-                    key={r.id}
-                    onClick={() => handleSelectRoute(r)}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800/60 text-xs text-slate-300 hover:text-white transition flex justify-between items-center"
-                  >
-                    <span className="font-bold">{r.name}</span>
-                    <span className="text-xxs text-slate-500">배차 {r.interval_mins}분</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Quick Landmarks */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {["강남역", "홍대입구", "명동역", "서울역", "한국외대"].map(landmark => (
+                <button
+                  key={landmark}
+                  onClick={() => handleQuickSearch(landmark)}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xxs text-slate-300 transition"
+                >
+                  #{landmark}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* 1. Route & Station Selection Card */}
+          {/* 1. Selected Station Info Card */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center space-x-2">
               <MapPin className="h-4 w-4 text-indigo-400" />
-              <span>현재 선택된 노선 정보</span>
+              <span>선택된 정류장 정보</span>
             </h2>
 
-            {/* Current Route Display */}
-            <div className="bg-slate-950/40 border border-slate-800/80 rounded-xl p-4 mb-4 flex justify-between items-center">
-              <div>
-                <span className={`text-lg font-extrabold ${selectedRoute.color === 'emerald' ? 'text-emerald-400' : 'text-sky-400'}`}>
-                  {selectedRoute.name}
-                </span>
-                <span className="text-xxs text-slate-500 block">평균 배차 간격: {selectedRoute.interval_mins}분</span>
-              </div>
-              <span className="text-xxs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-bold">
-                {stations.length}개 정류장 탑재
-              </span>
-            </div>
+            {selectedStation ? (
+              <div className="space-y-4">
+                <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4">
+                  <span className="text-xxs text-indigo-400 font-bold uppercase tracking-wider block mb-1">현재 선택된 정류소</span>
+                  <h3 className="text-lg font-extrabold text-slate-100">{selectedStation.name}</h3>
+                  <span className="text-xxs text-slate-500 block mt-1">위도: {selectedStation.lat.toFixed(4)}, 경도: {selectedStation.lng.toFixed(4)}</span>
+                </div>
 
-            {/* Station List */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 block mb-1">정류장 목록</label>
-              <div className="max-h-60 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-                {stations.map(st => (
-                  <button
-                    key={st.id}
-                    onClick={() => setSelectedStationId(st.id)}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all border flex items-center justify-between ${
-                      selectedStationId === st.id
-                        ? 'bg-indigo-600/15 text-indigo-300 border-indigo-500/40 font-semibold'
-                        : 'bg-slate-950/30 text-slate-400 border-slate-800/50 hover:bg-slate-800/40 hover:text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xxs font-bold ${
-                        selectedStationId === st.id ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-500'
-                      }`}>
-                        {st.sequence}
-                      </span>
-                      <span className="text-sm">{st.name}</span>
-                    </div>
-                    {selectedStationId === st.id && (
-                      <span className="text-xxs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold">
-                        기준 정류장
-                      </span>
-                    )}
-                  </button>
-                ))}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400 block">정차 노선 ({selectedStation.routes.length}개)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedStation.routes.map(rId => {
+                      const r = ROUTE_DETAILS[rId] || { name: rId, type: "지선", color: "emerald", hex: "#10b981" };
+                      return (
+                        <div
+                          key={rId}
+                          className="px-3 py-2 rounded-lg bg-slate-950/40 border border-slate-800/80 flex items-center justify-between"
+                        >
+                          <span className="text-xs font-bold text-slate-200">{r.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold ${
+                            r.type === '지선' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            r.type === '광역' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                            r.type === '간선' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                            r.type === '순환' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                            'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                          }`}>
+                            {r.type}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500 text-xs">
+                <Info className="h-8 w-8 mx-auto mb-2 text-slate-600" />
+                <p>지도에서 정류장을 클릭하거나 검색하여 전광판을 소환하세요.</p>
+              </div>
+            )}
           </div>
 
           {/* 2. Time Simulation Card */}
@@ -709,7 +812,7 @@ export default function Home() {
             <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-4 text-center">
               <div className="text-xxs text-slate-500 font-bold uppercase tracking-widest mb-1">예측 타겟 시간</div>
               <div className="text-2xl font-mono font-bold text-indigo-300 tracking-tight">
-                {formatDisplayTime(targetTime.toISOString())}
+                {formatDisplayTime(targetTime)}
               </div>
               <div className="text-xxs text-slate-400 mt-1 flex items-center justify-center space-x-1">
                 <Calendar className="h-3 w-3 text-slate-500" />
@@ -774,166 +877,167 @@ export default function Home() {
         {/* Right Column: Timeline Visualization & Destination Finder (8 cols) */}
         <section className="lg:col-span-8 flex flex-col space-y-6">
           
-          {/* 3. Interactive Timeline Visualization Card */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-xl flex flex-col justify-between min-h-[350px]">
+          {/* Leaflet Map Card */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm shadow-xl flex flex-col h-[500px]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                <Navigation className="h-4 w-4 text-indigo-400" />
+                <span>서울 실시간 버스 정류장 지도</span>
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleMoveToUserLocation}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-bold border border-indigo-500/30 transition flex items-center space-x-1"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>내 위치로</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-800">
+              <div id="map" className="w-full h-full z-10" />
+              
+              <div className="absolute bottom-3 left-3 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg z-20 pointer-events-none text-xxs text-slate-300 max-w-xs">
+                <p className="font-bold text-indigo-400 mb-0.5">💡 지도 조작 가이드</p>
+                <p>• 마커를 클릭하여 정류장 전광판을 소환하세요.</p>
+                <p>• 지도 상의 아무 곳이나 클릭하면 새 정류장이 생성됩니다.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Interactive Multi-Route Display Board Card */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-xl flex flex-col justify-between min-h-[450px]">
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-base font-bold text-slate-200 flex items-center space-x-2">
-                  <span className={`w-3 h-3 rounded-full bg-${selectedRoute.color === 'emerald' ? 'emerald' : 'sky'}-500 animate-pulse`} />
-                  <span>{selectedRoute.name} 실시간 도착 예측 타임라인</span>
+                  <span className="w-3.5 h-3.5 rounded bg-indigo-500 animate-pulse" />
+                  <span>실시간 버스 도착 전광판 (띠지 시각화)</span>
                 </h2>
-                <div className="text-xs text-slate-400 font-medium">
-                  {stations[0]?.name} ➔ {stations[stations.length - 1]?.name} 방면
-                </div>
+                {selectedStation && (
+                  <div className="text-xs text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                    📍 {selectedStation.name}
+                  </div>
+                )}
               </div>
 
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                  <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
-                  <p className="text-sm text-slate-400">예측 타임라인 데이터를 계산하는 중...</p>
-                </div>
-              ) : error ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-                  <AlertTriangle className="h-10 w-10 text-rose-500" />
-                  <p className="text-sm text-rose-400 font-semibold">데이터를 불러오지 못했습니다.</p>
-                  <p className="text-xs text-slate-500 max-w-sm">{error}</p>
-                </div>
-              ) : timelineData ? (
-                <div className="py-12 relative">
-                  {/* Horizontal Track Line */}
-                  <div className="absolute top-[88px] left-[10%] right-[10%] h-2 bg-slate-800 rounded-full border border-slate-700/50" />
-
-                  {/* Stations Nodes */}
-                  <div className="relative flex justify-between px-[10%] z-10">
-                    {timelineData.timeline.stations.map((st, idx) => {
-                      const isTarget = st.id === selectedStationId;
-                      return (
-                        <div key={st.id} className="flex flex-col items-center w-32 text-center relative">
-                          
-                          {/* Station Name above */}
-                          <div className="h-12 flex items-end justify-center mb-4">
-                            <span className={`text-xs font-bold transition-all ${
-                              isTarget ? 'text-indigo-300 text-sm drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'text-slate-400'
-                            }`}>
-                              {st.name}
-                            </span>
-                          </div>
-
-                          {/* Station Node Node Circle */}
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center border-3 transition-all ${
-                            isTarget 
-                              ? 'bg-indigo-500 border-indigo-300 scale-125 shadow-lg shadow-indigo-500/50 ring-4 ring-indigo-500/20' 
-                              : 'bg-slate-900 border-slate-600'
-                          }`}>
-                            <span className={`text-xxs font-bold ${isTarget ? 'text-white' : 'text-slate-500'}`}>
-                              {st.sequence}
-                            </span>
-                          </div>
-
-                          {/* Label Below Node */}
-                          <div className="mt-2">
-                            {isTarget && (
-                              <span className="text-xxs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold border border-indigo-500/30">
-                                내 정류장
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Active Buses Rendered on Track */}
-                  <div className="absolute top-[68px] left-[10%] right-[10%] h-12 pointer-events-none">
-                    {timelineData.activeBuses.map((bus) => {
-                      // Find from and to station indices in the filtered timeline
-                      const stationsList = timelineData.timeline.stations;
-                      const fromIdx = stationsList.findIndex(s => s.id === bus.fromStationId);
-                      const toIdx = stationsList.findIndex(s => s.id === bus.toStationId);
-
-                      if (fromIdx === -1 || toIdx === -1) return null;
-
-                      // Calculate absolute percentage position on the track
-                      const segmentWidth = 100 / (stationsList.length - 1);
-                      const basePercent = fromIdx * segmentWidth;
-                      const busPercent = basePercent + bus.progressRate * segmentWidth;
-
-                      const isCrowded = bus.status === 'CROWDED';
-
-                      return (
-                        <div
-                          key={bus.busId}
-                          className="absolute transition-all duration-1000 ease-in-out -translate-x-1/2 flex flex-col items-center"
-                          style={{ left: `${busPercent}%` }}
-                        >
-                          {/* Bus Card */}
-                          <div className={`pointer-events-auto px-3.5 py-2 rounded-xl border flex flex-col items-center space-y-0.5 shadow-xl transition-all hover:scale-105 ${
-                            isCrowded
-                              ? 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'
-                              : selectedRoute.color === 'emerald'
-                              ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
-                              : 'bg-sky-500/95 text-white border-sky-400 shadow-sky-500/20'
-                          }`}>
-                            <div className="flex items-center space-x-1.5">
-                              <span className="text-xs font-extrabold tracking-tight">{bus.busName}</span>
-                              <span className="text-xxs opacity-90 font-mono font-bold bg-black/20 px-1.5 py-0.5 rounded">
-                                {bus.busId}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-xxs font-bold">
-                              <span>{bus.estimatedMinutesLeft}분 전</span>
-                              <span>•</span>
-                              <span className="flex items-center">
-                                {isCrowded ? (
-                                  <>
-                                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5 fill-current" />
-                                    <span>혼잡</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-2.5 w-2.5 mr-0.5 fill-current" />
-                                    <span>여유</span>
-                                  </>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Arrow pointing down to track */}
-                          <div className={`w-2 h-2 rotate-45 -mt-1 border-r border-b ${
-                            isCrowded
-                              ? 'bg-rose-500 border-rose-400'
-                              : selectedRoute.color === 'emerald'
-                              ? 'bg-emerald-500 border-emerald-400'
-                              : 'bg-sky-500 border-sky-400'
-                          }`} />
-                        </div>
-                      );
-                    })}
-                  </div>
+              {!selectedStation ? (
+                <div className="flex flex-col items-center justify-center py-24 text-center text-slate-500">
+                  <Info className="h-12 w-12 mb-3 text-indigo-500/40 animate-bounce" />
+                  <p className="text-base font-bold text-slate-300">정류장을 선택해주세요</p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs">지도에서 정류장 마커를 클릭하거나 아무 곳이나 클릭하여 전광판을 소환할 수 있습니다.</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center text-slate-500">
-                  <Info className="h-10 w-10 mb-2" />
-                  <p className="text-sm">타임라인을 보려면 정류장을 선택해주세요.</p>
+                <div className="space-y-6">
+                  {selectedStation.routes.map(routeId => {
+                    const route = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981" };
+                    const activeBusesForRoute = simulatedBuses[routeId] || [];
+                    
+                    return (
+                      <div key={routeId} className="bg-slate-950/60 border border-slate-800/60 rounded-xl p-4 relative">
+                        {/* Route Header Info */}
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-800/40 pb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-sm font-extrabold px-2.5 py-0.5 rounded-lg text-white`} style={{ backgroundColor: route.hex }}>
+                              {route.name}
+                            </span>
+                            <span className="text-xxs text-slate-400 font-medium">배차 {route.interval}분</span>
+                          </div>
+                          <span className="text-xxs text-slate-500 font-mono">방향: 서울 도심 방면</span>
+                        </div>
+
+                        {/* The Horizontal Track (띠지) */}
+                        <div className="h-16 relative bg-slate-900/40 border border-slate-800/50 rounded-lg overflow-hidden flex items-center px-4">
+                          {/* Track Line */}
+                          <div className="absolute left-4 right-4 h-1.5 bg-slate-800 rounded-full border-t border-slate-700/30" />
+                          
+                          {/* Arrival Marker at the Right End */}
+                          <div className="absolute right-4 flex flex-col items-center justify-center z-20">
+                            <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 animate-ping absolute" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 z-10" />
+                            <span className="text-[9px] font-extrabold text-indigo-400 mt-1">도착지</span>
+                          </div>
+
+                          {/* Left End Marker (15 mins away) */}
+                          <div className="absolute left-4 flex flex-col items-center justify-center z-10 opacity-40">
+                            <div className="w-2 h-2 rounded-full bg-slate-600" />
+                            <span className="text-[8px] font-bold text-slate-500 mt-1">15분전</span>
+                          </div>
+
+                          {/* Bus Nodes moving on the Track */}
+                          {activeBusesForRoute.length === 0 ? (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-xxs text-slate-600 font-medium italic">현재 운행 중인 버스 없음 (운행 종료)</span>
+                            </div>
+                          ) : (
+                            activeBusesForRoute.map(bus => {
+                              const leftPercent = ((15 - bus.minutesLeft) / 15) * 80 + 5;
+                              const isCrowded = bus.status === 'CROWDED';
+                              
+                              return (
+                                <div
+                                  key={bus.id}
+                                  className="absolute -translate-y-1/2 transition-all duration-1000 ease-out z-20 flex flex-col items-center"
+                                  style={{ left: `${leftPercent}%`, top: '50%' }}
+                                >
+                                  {/* Bus Node Card */}
+                                  <div
+                                    className={`px-3 py-1.5 rounded-xl border flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer ${
+                                      isCrowded 
+                                        ? 'bg-rose-500/90 text-white border-rose-400 shadow-rose-500/20' 
+                                        : 'text-white shadow-black/40'
+                                    }`}
+                                    style={{ 
+                                      backgroundColor: isCrowded ? undefined : route.hex,
+                                      borderColor: isCrowded ? undefined : `${route.hex}cc`
+                                    }}
+                                  >
+                                    <span className="text-[10px] font-extrabold tracking-tight">{route.name}</span>
+                                    <span className="text-[9px] font-bold opacity-90 mt-0.5">
+                                      {bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분전`}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Little indicator dot */}
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white border border-slate-950 mt-1 shadow" />
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* Timeline Info Footer */}
-            <div className="border-t border-slate-800/60 pt-4 mt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+            {/* Legend Footer */}
+            <div className="border-t border-slate-800/60 pt-4 mt-6 flex flex-wrap items-center justify-between text-xxs text-slate-400 gap-3">
               <div className="flex items-center space-x-2">
-                <Info className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span>버스는 이전 정류장과 다음 정류장 사이의 <b>상대 진행률(Progress Rate)</b>로 렌더링됩니다.</span>
+                <Info className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                <span>시간대 슬라이더를 움직이면 버스들이 도착 예정 시간에 맞춰 <b>스무스하게 이동</b>합니다.</span>
               </div>
-              <div className="flex items-center space-x-4 shrink-0">
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-emerald-500" />
-                  <span>여유 (NORMAL)</span>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <div className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded bg-[#10b981]" />
+                  <span>지선 (연두)</span>
                 </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-rose-500" />
-                  <span>혼잡 (CROWDED)</span>
+                <div className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded bg-[#ef4444]" />
+                  <span>광역 (빨강)</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded bg-[#0ea5e9]" />
+                  <span>간선 (하늘)</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded bg-[#f59e0b]" />
+                  <span>순환 (노란)</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded bg-[#3730a3]" />
+                  <span>심야 (남색)</span>
                 </div>
               </div>
             </div>
@@ -955,7 +1059,7 @@ export default function Home() {
                   onChange={(e) => setDestStationId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
                 >
-                  {stations.slice(1).map(s => (
+                  {stations.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
@@ -1028,7 +1132,7 @@ export default function Home() {
                         <div className="text-xxs text-slate-500 font-bold uppercase mb-1">출발 (탑승 정류장)</div>
                         <div className="text-sm font-bold text-slate-200 mb-0.5">{finderResult.boardStation.name}</div>
                         <div className="text-xs font-mono font-bold text-indigo-400">
-                          {formatDisplayTime(finderResult.boardTime.toISOString())} 출발
+                          {formatDisplayTime(finderResult.boardTime)} 출발
                         </div>
                       </div>
 
@@ -1043,7 +1147,7 @@ export default function Home() {
                         <div className="text-xxs text-slate-500 font-bold uppercase mb-1">도착 (목적지 정류장)</div>
                         <div className="text-sm font-bold text-slate-200 mb-0.5">{finderResult.destStation.name}</div>
                         <div className="text-xs font-mono font-bold text-emerald-400">
-                          {formatDisplayTime(finderResult.arrivalTime.toISOString())} 도착
+                          {formatDisplayTime(finderResult.arrivalTime)} 도착
                         </div>
                       </div>
                     </div>
@@ -1053,7 +1157,7 @@ export default function Home() {
                       <div>
                         <p className="font-semibold mb-0.5">예측 계획이 타임라인에 반영되었습니다!</p>
                         <p className="text-slate-400 leading-relaxed">
-                          위 타임라인이 출발지인 <b>{finderResult.boardStation.name}</b> 정류장과 탑승 예정 시간인 <b>{formatDisplayTime(finderResult.boardTime.toISOString())}</b>으로 자동 이동되었습니다. 버스 <b>{finderResult.bus.busId}</b>의 실시간 진행률을 확인해보세요.
+                          위 전광판이 출발지인 <b>{finderResult.boardStation.name}</b> 정류장과 탑승 예정 시간인 <b>{formatDisplayTime(finderResult.boardTime)}</b>으로 자동 이동되었습니다. 추천 버스의 실시간 진행률을 확인해보세요.
                         </p>
                       </div>
                     </div>
