@@ -1,0 +1,14 @@
+[
+  { "id": "S001", "name": "경희대후문", "sequence": 1, "route_id": "R001" },
+  { "id": "S002", "name": "한국외대 후문", "sequence": 2, "route_id": "R001" },
+  { "id": "S003", "name": "한국외대 정문", "sequence": 3, "route_id": "R001" },
+  { "id": "S004", "name": "돌곶이역 2번 출구", "sequence": 4, "route_id": "R001" },
+  { "id": "S005", "name": "석관동주민센터", "sequence": 5, "route_id": "R001" },
+  { "id": "S006", "name": "신이문역", "sequence": 6, "route_id": "R001" },
+  { "id": "S101", "name": "경희대후문", "sequence": 1, "route_id": "R002" },
+  { "id": "S102", "name": "한국외대 후문", "sequence": 2, "route_id": "R002" },
+  { "id": "S103", "name": "한국외대 정문", "sequence": 3, "route_id": "R002" },
+  { "id": "S104", "name": "돌곶이역 2번 출구", "sequence": 4, "route_id": "R002" },
+  { "id": "S105", "name": "석관동주민센터", "sequence": 5, "route_id": "R002" },
+  { "id": "S106", "name": "신이문역", "sequence": 6, "route_id": "R002" }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "R001",
+    "name": "65번",
+    "interval_mins": 10
+  },
+  {
+    "id": "R002",
+    "name": "241번",
+    "interval_mins": 12
+  }
+]
