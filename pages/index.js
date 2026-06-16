@@ -36,49 +36,49 @@ const PREDEFINED_STATIONS = [
 // Route details with types and colors
 const ROUTE_DETAILS = {
   // 지선버스 (Green)
-  "120번": { name: "120번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
-  "1111번": { name: "1111번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
-  "1122번": { name: "1122번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
-  "1213번": { name: "1213번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
-  "1222번": { name: "1222번", type: "지선", color: "emerald", hex: "#10b981", interval: 13 },
-  "2112번": { name: "2112번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
-  "3412번": { name: "3412번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
-  "3413번": { name: "3413번", type: "지선", color: "emerald", hex: "#10b981", interval: 9 },
-  "5618번": { name: "5618번", type: "지선", color: "emerald", hex: "#10b981", interval: 12 },
-  "7011번": { name: "7011번", type: "지선", color: "emerald", hex: "#10b981", interval: 10 },
-  "7612번": { name: "7612번", type: "지선", color: "emerald", hex: "#10b981", interval: 9 },
-  "7713번": { name: "7713번", type: "지선", color: "emerald", hex: "#10b981", interval: 11 },
+  "120번": { name: "120번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 10 },
+  "1111번": { name: "1111번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 11 },
+  "1122번": { name: "1122번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 12 },
+  "1213번": { name: "1213번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 10 },
+  "1222번": { name: "1222번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 13 },
+  "2112번": { name: "2112번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 12 },
+  "3412번": { name: "3412번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 11 },
+  "3413번": { name: "3413번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 9 },
+  "5618번": { name: "5618번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 12 },
+  "7011번": { name: "7011번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 10 },
+  "7612번": { name: "7612번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 9 },
+  "7713번": { name: "7713번", type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129", interval: 11 },
 
   // 간선버스 (Blue)
-  "104번": { name: "104번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
-  "109번": { name: "109번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
-  "140번": { name: "140번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 7 },
-  "143번": { name: "143번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 6 },
-  "144번": { name: "144번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
-  "147번": { name: "147번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
-  "150번": { name: "150번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
-  "162번": { name: "162번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
-  "273번": { name: "273번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
-  "301번": { name: "301번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
-  "501번": { name: "501번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 9 },
-  "5714번": { name: "5714번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 8 },
-  "602번": { name: "602번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 10 },
-  "720번": { name: "720번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 11 },
-  "1020번": { name: "1020번", type: "간선", color: "sky", hex: "#0ea5e9", interval: 12 },
+  "104번": { name: "104번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 8 },
+  "109번": { name: "109번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 10 },
+  "140번": { name: "140번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 7 },
+  "143번": { name: "143번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 6 },
+  "144번": { name: "144번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 8 },
+  "147번": { name: "147번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 8 },
+  "150번": { name: "150번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 9 },
+  "162번": { name: "162번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 10 },
+  "273번": { name: "273번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 9 },
+  "301번": { name: "301번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 8 },
+  "501번": { name: "501번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 9 },
+  "5714번": { name: "5714번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 8 },
+  "602번": { name: "602번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 10 },
+  "720번": { name: "720번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 11 },
+  "1020번": { name: "1020번", type: "간선", color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", interval: 12 },
 
   // 광역버스 (Red)
-  "M2341": { name: "M2341", type: "광역", color: "rose", hex: "#ef4444", interval: 15 },
-  "M4101": { name: "M4101", type: "광역", color: "rose", hex: "#ef4444", interval: 12 },
-  "M5107": { name: "M5107", type: "광역", color: "rose", hex: "#ef4444", interval: 10 },
-  "M7111": { name: "M7111", type: "광역", color: "rose", hex: "#ef4444", interval: 14 },
+  "M2341": { name: "M2341", type: "광역", color: "rose", hex: "#ef4444", rgb: "239, 68, 68", interval: 15 },
+  "M4101": { name: "M4101", type: "광역", color: "rose", hex: "#ef4444", rgb: "239, 68, 68", interval: 12 },
+  "M5107": { name: "M5107", type: "광역", color: "rose", hex: "#ef4444", rgb: "239, 68, 68", interval: 10 },
+  "M7111": { name: "M7111", type: "광역", color: "rose", hex: "#ef4444", rgb: "239, 68, 68", interval: 14 },
 
   // 순환버스 (Yellow)
-  "01번": { name: "01번", type: "순환", color: "amber", hex: "#f59e0b", interval: 12 },
-  "02번": { name: "02번", type: "순환", color: "amber", hex: "#f59e0b", interval: 15 },
+  "01번": { name: "01번", type: "순환", color: "amber", hex: "#f59e0b", rgb: "245, 158, 11", interval: 12 },
+  "02번": { name: "02번", type: "순환", color: "amber", hex: "#f59e0b", rgb: "245, 158, 11", interval: 15 },
 
   // 심야버스 (Navy)
-  "N13번": { name: "N13번", type: "심야", color: "indigo", hex: "#3730a3", interval: 25 },
-  "N62번": { name: "N62번", type: "심야", color: "indigo", hex: "#3730a3", interval: 30 }
+  "N13번": { name: "N13번", type: "심야", color: "indigo", hex: "#3730a3", rgb: "55, 48, 163", interval: 25 },
+  "N62번": { name: "N62번", type: "심야", color: "indigo", hex: "#3730a3", rgb: "55, 48, 163", interval: 30 }
 };
 
 // Seoul & Gyeonggi neighborhoods for dynamic naming of clicked locations
@@ -517,6 +517,84 @@ export default function Home() {
 
   const simulatedBuses = getSimulatedBuses();
 
+  // Aggregate all active buses from all routes of the selected station for a single unified timeline lane
+  const getAllActiveBuses = () => {
+    if (!selectedStation) return [];
+    const allBuses = [];
+    selectedStation.routes.forEach(routeId => {
+      const route = ROUTE_DETAILS[routeId];
+      if (!route) return;
+      const activeBusesForRoute = simulatedBuses[routeId] || [];
+      activeBusesForRoute.forEach(bus => {
+        allBuses.push({
+          ...bus,
+          routeId,
+          route
+        });
+      });
+    });
+    // Sort by minutesLeft so they are ordered by predicted arrival times (closest first)
+    allBuses.sort((a, b) => a.minutesLeft - b.minutesLeft);
+    
+    // Calculate horizontal positions with spacing to prevent overlapping
+    const spacingPercent = 3.5; // spacing between cards
+    const positions = [];
+    
+    for (let i = 0; i < allBuses.length; i++) {
+      const bus = allBuses[i];
+      
+      // Determine width percentage of this card
+      let widthPercent = 7;
+      if (bus.minutesLeft >= 12) {
+        widthPercent = 7;
+      } else if (bus.minutesLeft >= 5) {
+        widthPercent = 18;
+      } else if (bus.minutesLeft >= 2) {
+        widthPercent = 27;
+      } else {
+        widthPercent = 36;
+      }
+      
+      // Natural left percent: maps 15m (8%) to 0m (92%)
+      const naturalLeft = ((15 - bus.minutesLeft) / 15) * 84 + 8;
+      
+      let finalLeft = naturalLeft;
+      if (i === 0) {
+        // First bus (closest to arrival) just uses its natural position (capped at 90%)
+        finalLeft = Math.min(90, naturalLeft);
+      } else {
+        // Subsequent buses must be placed to the left of the previous bus
+        const prevBus = allBuses[i - 1];
+        const prevLeft = positions[i - 1];
+        
+        let prevWidthPercent = 7;
+        if (prevBus.minutesLeft >= 12) {
+          prevWidthPercent = 7;
+        } else if (prevBus.minutesLeft >= 5) {
+          prevWidthPercent = 18;
+        } else if (prevBus.minutesLeft >= 2) {
+          prevWidthPercent = 27;
+        } else {
+          prevWidthPercent = 36;
+        }
+        
+        // Minimum distance is half of prev width + half of current width + spacing
+        const minDistance = (prevWidthPercent + widthPercent) / 2 + spacingPercent;
+        const maxLeftAllowed = prevLeft - minDistance;
+        
+        // Ensure it is pushed left to avoid overlap
+        finalLeft = Math.min(naturalLeft, maxLeftAllowed);
+      }
+      
+      positions.push(finalLeft);
+      bus.leftPercent = finalLeft;
+    }
+    
+    return allBuses;
+  };
+
+  const allActiveBuses = getAllActiveBuses();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
       <Head>
@@ -738,13 +816,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 3. Interactive Multi-Route Unified Timeline Track Card (통합 띠지 시각화) */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between min-h-[420px] transition-all duration-300">
+          {/* 3. Interactive Multi-Route Unified Timeline Track Card (단일 통합 고속도로 시각화) */}
+          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between min-h-[440px] transition-all duration-300">
             <div>
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/40">
                 <h2 className="text-sm font-extrabold text-slate-200 flex items-center space-x-2">
                   <span className="w-3.5 h-3.5 rounded bg-indigo-500 animate-pulse" />
-                  <span>실시간 버스 통합 타임라인 전광판 (통합 띠지)</span>
+                  <span>실시간 버스 통합 타임라인 전광판 (단일 차선 고속도로)</span>
                 </h2>
                 {selectedStation && (
                   <div className="text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full shadow">
@@ -762,108 +840,151 @@ export default function Home() {
               ) : (
                 <div className="space-y-4">
                   
-                  {/* 통합 타임라인 자 (Unified Grid / Scale Header) */}
-                  <div className="flex items-center">
-                    {/* Fixed space for Route Badge on the left */}
-                    <div className="w-24 shrink-0 pr-4 text-right">
-                      <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">노선 목록</span>
+                  {/* 통합 타임라인 도로 가이드 핀 (Station Milestones above the Highway) */}
+                  <div className="relative h-10 select-none">
+                    {/* 이전 정류소 핀 (15분 전 / 좌측) */}
+                    <div className="absolute left-[8%] -translate-x-1/2 flex flex-col items-center">
+                      <span className="text-[10px] font-black text-slate-400">출발 / 이전 정류소</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 mt-1" />
+                      <div className="w-px h-3 border-l border-dashed border-slate-800" />
                     </div>
-                    {/* Shared timeline labels grid */}
-                    <div className="flex-1 relative flex justify-between text-[10px] font-extrabold text-slate-500 px-5 select-none font-mono">
-                      <span className="w-12 text-left">15분 전</span>
-                      <span className="w-12 text-center -translate-x-3">12분 전</span>
-                      <span className="w-12 text-center -translate-x-2">9분 전</span>
-                      <span className="w-12 text-center -translate-x-1">6분 전</span>
-                      <span className="w-12 text-center">3분 전</span>
-                      <span className="w-12 text-right text-indigo-400">도착지</span>
+
+                    {/* 중간 역 핀 (8분 전 / 중앙) */}
+                    <div className="absolute left-[50%] -translate-x-1/2 flex flex-col items-center">
+                      <span className="text-[10px] font-black text-indigo-400">돌곶이역 2번 출구</span>
+                      <div className="w-2 h-2 rounded-full bg-indigo-500/80 mt-1 shadow shadow-indigo-500/20" />
+                      <div className="w-px h-3 border-l border-dashed border-indigo-900/50" />
+                    </div>
+
+                    {/* 목적지 핀 (0분 전 / 우측) */}
+                    <div className="absolute right-[5%] translate-x-1/2 flex flex-col items-center">
+                      <span className="text-[10px] font-black text-emerald-400">{selectedStation.name} (도착지)</span>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 animate-ping absolute bottom-[-10px]" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shadow shadow-emerald-500/20" />
+                      <div className="w-px h-3 border-l border-dashed border-emerald-900/50" />
                     </div>
                   </div>
 
-                  {/* Single Unified Grid Timeline Board */}
-                  <div className="relative border border-slate-900 rounded-3xl bg-slate-950/70 overflow-hidden divide-y divide-slate-900/60 shadow-inner">
+                  {/* Single Unified Grid Timeline Board (Single Highway Lane) */}
+                  {/* height-56, very thick dark asphalt feel, single lane */}
+                  <div className="relative border-y border-slate-800 rounded-3xl bg-[#090d16] overflow-hidden shadow-2xl h-44 flex items-center">
                     
-                    {/* Background Vertical Grid Lines - spanning from top to bottom through all lanes */}
-                    <div className="absolute inset-0 pointer-events-none flex justify-between pl-24 pr-5 py-4 z-0">
+                    {/* Center Lane dash line (고속도로 차선 느낌의 중앙 노란 점선 데코) */}
+                    <div className="absolute left-0 right-0 h-0.5 border-t-2 border-dashed border-amber-500/20 pointer-events-none z-0" />
+                    
+                    {/* Background Vertical Grid Lines - spanning from top to bottom */}
+                    <div className="absolute inset-0 pointer-events-none flex justify-between px-6 py-4 z-0">
                       {/* LeftPercent mapped: 15m to 0m => 5% to 95% */}
-                      <div className="absolute left-[calc(24px+5%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[calc(24px+23%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[calc(24px+41%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[calc(24px+59%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[calc(24px+77%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[8%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[29%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[50%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[71%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
                       
-                      {/* Red glowing Arrival Destination line */}
-                      <div className="absolute left-[calc(24px+95%)] top-0 bottom-0 border-l-2 border-indigo-500/40" />
+                      {/* Destination line glow */}
+                      <div className="absolute right-[5%] top-0 bottom-0 border-r-4 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)]" />
                     </div>
 
-                    {/* Render lanes within this single track board */}
-                    {selectedStation.routes.map(routeId => {
-                      const route = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981", interval: 10 };
-                      const activeBusesForRoute = simulatedBuses[routeId] || [];
-
-                      return (
-                        <div key={routeId} className="flex items-center h-20 relative z-10 hover:bg-slate-900/10 transition duration-150">
-                          {/* Left Column: Route Label Badge */}
-                          <div className="w-24 shrink-0 pl-4 pr-2 flex flex-col justify-center border-r border-slate-900/40 h-full bg-slate-950/30">
-                            <span className="text-xxs text-slate-500 font-bold mb-0.5 tracking-tighter">배차 {route.interval}분</span>
-                            <span className="text-[11px] font-black px-2 py-0.5 rounded-lg text-white shadow-sm flex items-center justify-center space-x-1" style={{ backgroundColor: route.hex }}>
-                              <BusIcon className="w-3 h-3 shrink-0" />
-                              <span className="font-mono tracking-tighter">{route.name}</span>
-                            </span>
-                          </div>
-
-                          {/* Right Column: Lane Track */}
-                          <div className="flex-1 h-full relative flex items-center pl-4 pr-5">
-                            {/* Bus Nodes gliding on the Track */}
-                            {activeBusesForRoute.length === 0 ? (
-                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
-                                <span className="text-[10px] text-slate-500 font-bold italic tracking-wide">이 시간대에 버스 운행 일정 없음</span>
-                              </div>
-                            ) : (
-                              activeBusesForRoute.map(bus => {
-                                // Maps 15min window perfectly: 15m (5%) to 0m (95%)
-                                const leftPercent = ((15 - bus.minutesLeft) / 15) * 90 + 5;
-                                const isCrowded = bus.status === 'CROWDED';
-
-                                return (
-                                  <div
-                                    key={bus.id}
-                                    className="absolute -translate-x-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
-                                    style={{ left: `${leftPercent}%` }}
-                                  >
-                                    {/* Bus Node Card */}
-                                    <div
-                                      className={`px-2.5 py-1 rounded-xl border flex flex-col items-center justify-center shadow-md hover:scale-105 transition-all duration-300 cursor-pointer ${
-                                        isCrowded 
-                                          ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-400 shadow-rose-500/10' 
-                                          : 'text-white shadow-black/30 hover:brightness-110'
-                                      }`}
-                                      style={{ 
-                                        backgroundColor: isCrowded ? undefined : route.hex,
-                                        borderColor: isCrowded ? undefined : `${route.hex}cc`
-                                      }}
-                                    >
-                                      <div className="flex items-center space-x-0.5">
-                                        <BusIcon className="w-2.5 h-2.5 shrink-0" />
-                                        <span className="text-[9px] font-black tracking-tight font-mono">{route.name}</span>
-                                      </div>
-                                      <span className="text-[8px] font-extrabold opacity-95 mt-0.5 whitespace-nowrap flex items-center space-x-0.5 font-mono">
-                                        <span>{bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분전`}</span>
-                                        {isCrowded && <span className="text-[7px] bg-white text-rose-600 px-0.5 py-0.1 rounded font-black">혼잡</span>}
-                                      </span>
-                                    </div>
-                                    
-                                    {/* Point indicator dot */}
-                                    <div className={`w-1.5 h-1.5 rounded-full border mt-1 shadow-sm ${
-                                      isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
-                                    }`} />
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
+                    {/* Unified Single Lane Track */}
+                    <div className="flex-1 h-full relative pl-6 pr-6 z-10 flex items-center">
+                      {allActiveBuses.length === 0 ? (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                          <span className="text-[11px] text-slate-500 font-bold italic tracking-wide">이 시간대에 운행 중인 버스가 없습니다</span>
                         </div>
-                      );
-                    })}
+                      ) : (
+                        allActiveBuses.map(bus => {
+                          const leftPercent = bus.leftPercent;
+                          const isCrowded = bus.status === 'CROWDED';
+                          
+                          // Dynamic Shape, Size & Glow based on predicted arrival time (minutesLeft)
+                          let containerClass = "";
+                          let glowStyle = {};
+                          let textStyle = "text-[9px] font-bold";
+                          let labelStyle = "text-[8px] font-extrabold opacity-95";
+                          let busIconSize = "w-3 h-3";
+
+                          if (bus.minutesLeft >= 12) {
+                            // 1) Starting out (12-15m): Circle Shape, very compact, darkish glow
+                            containerClass = "w-11 h-11 rounded-full flex flex-col items-center justify-center border border-opacity-40 transition-all duration-1000 ease-in-out";
+                            glowStyle = {
+                              backgroundColor: bus.route.hex,
+                              boxShadow: `0 0 10px rgba(${bus.route.rgb}, 0.3)`,
+                              borderColor: `rgba(${bus.route.rgb}, 0.5)`
+                            };
+                            textStyle = "text-[10px] font-black tracking-tighter font-mono -mb-0.5";
+                            // only show route name in circle
+                          } else if (bus.minutesLeft >= 5 && bus.minutesLeft < 12) {
+                            // 2) Mid-way (5-11m): Medium Rounded Rectangle, elegant glow
+                            containerClass = "w-28 h-12 rounded-2xl flex flex-col items-center justify-center border border-opacity-50 transition-all duration-1000 ease-in-out";
+                            glowStyle = {
+                              backgroundColor: bus.route.hex,
+                              boxShadow: `0 0 16px rgba(${bus.route.rgb}, 0.5)`,
+                              borderColor: `rgba(${bus.route.rgb}, 0.7)`
+                            };
+                            textStyle = "text-[10px] font-black tracking-tight font-mono";
+                            labelStyle = "text-[8px] font-black opacity-90 mt-0.5 font-mono";
+                            busIconSize = "w-3.5 h-3.5";
+                          } else {
+                            // 3) Approaching / Arriving (0-4m): Extra long, super wide card with high-end neon glow!
+                            const extraLong = bus.minutesLeft <= 1;
+                            const cardWidth = extraLong ? "w-[15rem] sm:w-[210px]" : "w-44";
+                            const cardHeight = extraLong ? "h-16" : "h-14";
+                            const bgGradient = isCrowded 
+                              ? "bg-gradient-to-b from-rose-500 to-rose-600 border-rose-400" 
+                              : "";
+
+                            containerClass = `${cardWidth} ${cardHeight} rounded-3xl flex flex-col items-center justify-center border transition-all duration-1000 ease-in-out ${bgGradient}`;
+                            glowStyle = {
+                              backgroundColor: isCrowded ? undefined : bus.route.hex,
+                              boxShadow: `0 0 35px rgba(${isCrowded ? "239, 68, 68" : bus.route.rgb}, 0.9)`,
+                              borderColor: isCrowded ? undefined : `rgba(${bus.route.rgb}, 0.9)`,
+                              borderWidth: "2px"
+                            };
+                            textStyle = extraLong ? "text-sm sm:text-base font-black tracking-wider font-mono" : "text-xs font-black tracking-tight font-mono";
+                            labelStyle = extraLong ? "text-[10px] sm:text-[11px] font-black mt-0.5 font-mono" : "text-[9px] font-black mt-0.5 font-mono";
+                            busIconSize = extraLong ? "w-4.5 h-4.5" : "w-4 h-4";
+                          }
+
+                          return (
+                            <div
+                              key={bus.id}
+                              className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
+                              style={{ left: `${leftPercent}%`, top: '50%', zIndex: 30 - bus.minutesLeft }}
+                            >
+                              {/* Bus Node Card */}
+                              <div
+                                className={`${containerClass} text-white shadow-xl hover:scale-105 hover:brightness-110 cursor-pointer`}
+                                style={glowStyle}
+                              >
+                                {bus.minutesLeft >= 12 ? (
+                                  // Circle style interior (minimalist)
+                                  <div className="flex flex-col items-center justify-center">
+                                    <span className={textStyle}>{bus.route.name.replace("번", "")}</span>
+                                    <span className="text-[7px] font-extrabold opacity-90 font-mono tracking-tighter">{bus.minutesLeft}m</span>
+                                  </div>
+                                ) : (
+                                  // Rectangular / Wide style interior
+                                  <>
+                                    <div className="flex items-center space-x-1">
+                                      <BusIcon className={`${busIconSize} shrink-0`} />
+                                      <span className={textStyle}>{bus.route.name}</span>
+                                    </div>
+                                    <span className={`${labelStyle} whitespace-nowrap flex items-center space-x-1`}>
+                                      <span>{bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분 전`}</span>
+                                      {isCrowded && <span className="text-[7px] bg-white text-rose-600 px-0.5 py-0.1 rounded font-black animate-pulse">혼잡</span>}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {/* Point indicator dot */}
+                              <div className={`w-1.5 h-1.5 rounded-full border mt-1.5 shadow-sm ${
+                                isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
+                              }`} />
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -873,7 +994,7 @@ export default function Home() {
             <div className="border-t border-slate-900/60 pt-4 mt-6 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-4">
               <div className="flex items-center space-x-2">
                 <Info className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span>선택된 정류소의 경유 버스들이 하나의 <b>통합형 띠지 보드</b>에서 동시에 움직이며 한눈에 비교 예측이 가능합니다.</span>
+                <span>모든 버스들이 <b>단일 고속도로 레인</b> 위에서 도착지가 가까워질수록 <b>도형이 길어지고 네온 글로우가 극적으로 활성화</b>됩니다.</span>
               </div>
               <div className="flex flex-wrap items-center gap-3 shrink-0 text-[10px] font-bold">
                 <div className="flex items-center space-x-1.5">
