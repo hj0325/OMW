@@ -116,6 +116,93 @@ const formatDisplayTime = (date) => {
   return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' });
 };
 
+// Beautiful HTML/CSS & SVG Glowing Liquid Gradient Bus Card Background (High Performance Fallback)
+const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
+  // Boost base and highlight colors to saturate them for a much punchier neon look
+  const getSaturatedColor = (colorHex) => {
+    // Basic color mapping for boosted neon punch
+    const boostMap = {
+      "#10b981": "#00ff87", // Vivid electric mint
+      "#0ea5e9": "#00d2ff", // Hyper cyan
+      "#ef4444": "#ff1a40", // High-intensity crimson
+      "#f59e0b": "#ffbf00", // Bright warm gold
+      "#3730a3": "#635bff"  // Luminous indigo
+    };
+    return boostMap[colorHex] || colorHex;
+  };
+
+  const saturatedHex = getSaturatedColor(hex);
+  const saturatedHighlight = getSaturatedColor(highlightHex);
+
+  return (
+    <div 
+      className="absolute inset-0 rounded-2xl overflow-hidden z-0 animate-[fade-in_0.6s_ease-out]"
+      style={{
+        background: `linear-gradient(135deg, ${saturatedHex}, ${saturatedHex}dd)`,
+        boxShadow: `0 0 32px ${saturatedHighlight}55, inset 0 0 20px ${saturatedHighlight}aa`
+      }}
+    >
+      {/* Animated Liquid Flow Effect (Pure CSS/SVG - incredibly smooth & robust) */}
+      <div 
+        className="absolute inset-0 opacity-50 mix-blend-overlay animate-pulse"
+        style={{
+          background: `radial-gradient(circle at 30% 30%, ${saturatedHighlight}, transparent 60%),
+                       radial-gradient(circle at 70% 70%, ${saturatedHighlight}, transparent 60%)`,
+          animationDuration: '6s',
+          filter: 'blur(8px)'
+        }}
+      />
+      {/* Subtle shining light beam sweep */}
+      <div 
+        className="absolute inset-y-0 w-1/3 -skew-x-12 opacity-25 pointer-events-none"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+          animation: 'shining-beam 4s infinite ease-in-out'
+        }}
+      />
+      
+      {/* Soft dynamic inner glowing pulse edge */}
+      <div 
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{
+          boxShadow: `inset 0 0 16px ${saturatedHighlight}`,
+          animation: 'inner-glow-pulse 3s infinite ease-in-out',
+          mixBlendMode: 'screen',
+          opacity: 0.95
+        }}
+      />
+      
+      {/* Glow highlight border */}
+      <div className="absolute inset-0 border border-white/20 rounded-2xl" />
+
+      <style jsx global>{`
+        @keyframes shining-beam {
+          0% { transform: translateX(-150%) skewX(-12deg); }
+          50% { transform: translateX(250%) skewX(-12deg); }
+          100% { transform: translateX(250%) skewX(-12deg); }
+        }
+        @keyframes inner-glow-pulse {
+          0% {
+            box-shadow: inset 0 0 10px var(--glow-color, rgba(255,255,255,0.5)),
+                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight}dd);
+            opacity: 0.75;
+          }
+          50% {
+            box-shadow: inset 0 0 18px var(--glow-color, rgba(255,255,255,0.7)),
+                        inset 0 0 32px var(--glow-fallback, ${saturatedHighlight});
+            opacity: 1.0;
+          }
+          100% {
+            box-shadow: inset 0 0 10px var(--glow-color, rgba(255,255,255,0.5)),
+                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight}dd);
+            opacity: 0.75;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 // Beautiful front-facing bus icon
 const BusIcon = ({ className = "w-5 h-5" }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -1083,42 +1170,29 @@ export default function Home() {
                           }
 
                           if (isHero) {
-                            cardClass = "w-72 sm:w-[420px] h-20 rounded-2xl flex items-center justify-center border";
-                            glowStyle = {
-                              backgroundImage: "linear-gradient(90deg, rgb(34,197,94), rgb(74,222,128))",
-                              boxShadow: "0 0 54px rgba(34,197,94,0.65)",
-                              borderColor: "rgba(255,255,255,0.6)"
-                            };
+                            cardClass = "w-72 sm:w-[420px] h-20 rounded-2xl border border-white/10";
                             inner = (
-                              <div className="flex items-center justify-center w-full h-full">
-                                <span className="text-[44px] sm:text-[56px] font-black tracking-tight leading-none">
+                              <div className="flex items-center justify-center w-full h-full pointer-events-auto">
+                                <span className="text-[28px] sm:text-[34px] font-semibold tracking-tight leading-none text-white drop-shadow-[0_4px_12px_rgba(255,255,255,0.15)]">
                                   {r.name}
                                 </span>
                               </div>
                             );
                           } else if (isRect) {
                             // Rectangle (2~4m): wide card
-                            const bg = isCrowded
-                              ? "linear-gradient(180deg, rgb(239,68,68), rgb(220,38,38))"
-                              : `linear-gradient(180deg, ${r.hex}, ${r.hex})`;
-                            cardClass = "w-52 sm:w-60 h-16 rounded-2xl flex items-center justify-between px-4 border";
-                            glowStyle = {
-                              backgroundImage: bg,
-                              boxShadow: `0 0 30px rgba(${isCrowded ? "239,68,68" : r.rgb}, 0.55)`,
-                              borderColor: `rgba(${isCrowded ? "239,68,68" : r.rgb}, 0.55)`
-                            };
+                            cardClass = "w-52 sm:w-60 h-16 rounded-2xl border border-white/5";
                             inner = (
-                              <div className="flex items-center justify-between w-full h-full px-1">
-                                <div className="flex flex-col items-start">
-                                  <span className="text-[18px] font-black leading-none tracking-tight">
+                              <div className="flex items-center justify-between w-full h-full px-5 pointer-events-auto">
+                                <div className="flex flex-col items-start justify-center">
+                                  <span className="text-[16px] font-extrabold leading-none tracking-tight text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]">
                                     {r.name}
                                   </span>
-                                  <span className="text-[12px] font-black opacity-90 mt-1">
+                                  <span className="text-[11px] font-bold opacity-95 text-white/90 mt-1.5">
                                     {bus.minutesLeft}분전
                                   </span>
                                 </div>
                                 {isCrowded && (
-                                  <span className="text-[10px] bg-white text-rose-600 px-2 py-1 rounded-lg font-black">
+                                  <span className="text-[9px] bg-white text-rose-600 px-1.5 py-0.5 rounded font-black shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
                                     혼잡
                                   </span>
                                 )}
@@ -1126,40 +1200,54 @@ export default function Home() {
                             );
                           } else if (isSquare) {
                             // Square (5~10m): square-ish tile
-                            cardClass = "w-16 h-16 rounded-2xl flex flex-col items-center justify-center border";
-                            glowStyle = {
-                              backgroundImage: `linear-gradient(180deg, ${r.hex}, ${r.hex})`,
-                              boxShadow: `0 0 22px rgba(${r.rgb}, 0.45)`,
-                              borderColor: `rgba(${r.rgb}, 0.45)`
-                            };
+                            cardClass = "w-16 h-16 rounded-2xl border border-white/5";
                             inner = (
-                              <div className="flex flex-col items-center justify-center w-full h-full">
-                                <span className="text-[13px] font-black tracking-tight leading-none">
+                              <div className="flex flex-col items-center justify-center w-full h-full pointer-events-auto">
+                                <span className="text-[12px] font-extrabold tracking-tight leading-none text-white">
                                   {r.name.replace("번", "")}
                                 </span>
-                                <span className="text-[9px] font-black opacity-90 mt-1.5">
+                                <span className="text-[9px] font-bold opacity-90 text-white/90 mt-1.5">
                                   {bus.minutesLeft}분전
                                 </span>
                               </div>
                             );
                           } else if (isDot) {
                             // Circle (11~15m): dot
-                            cardClass = "w-12 h-12 rounded-full flex flex-col items-center justify-center border";
-                            glowStyle = {
-                              backgroundImage: `linear-gradient(180deg, ${r.hex}, ${r.hex})`,
-                              boxShadow: `0 0 16px rgba(${r.rgb}, 0.35)`,
-                              borderColor: `rgba(${r.rgb}, 0.45)`
-                            };
+                            cardClass = "w-12 h-12 rounded-full border border-white/5";
                             inner = (
-                              <div className="flex flex-col items-center justify-center w-full h-full">
-                                <span className="text-[10px] font-black font-mono tracking-tight leading-none">
+                              <div className="flex flex-col items-center justify-center w-full h-full pointer-events-auto">
+                                <span className="text-[10px] font-bold font-mono tracking-tight leading-none text-white">
                                   {r.name.replace("번", "")}
                                 </span>
-                                <span className="text-[9px] font-black opacity-80 mt-0.5">
+                                <span className="text-[8px] font-medium opacity-85 text-white/80 mt-1">
                                   {bus.minutesLeft}m
                                 </span>
                               </div>
                             );
+                          }
+
+                          // Get beautiful, vibrant highlight colors matching each route type
+                          let highlightHex = "#6366f1"; // Default purple
+                          if (isCrowded) {
+                            highlightHex = "#f87171"; // Fiery red highlight
+                          } else {
+                            switch (r.color) {
+                              case "emerald":
+                                highlightHex = "#34d399"; // Bright neon mint
+                                break;
+                              case "sky":
+                                highlightHex = "#38bdf8"; // Electric cyan
+                                break;
+                              case "rose":
+                                highlightHex = "#f87171"; // Vibrant neon red/pink
+                                break;
+                              case "amber":
+                                highlightHex = "#fbbf24"; // Radiant yellow/gold
+                                break;
+                              case "indigo":
+                                highlightHex = "#818cf8"; // Deep neon indigo
+                                break;
+                            }
                           }
 
                           return (
@@ -1168,8 +1256,15 @@ export default function Home() {
                               className="absolute transition-all duration-1000 ease-in-out"
                               style={posStyle}
                             >
-                              <div className={`${cardClass} text-white shadow-2xl transition-all duration-1000 ease-in-out`} style={glowStyle}>
-                                {inner}
+                              <div className={`${cardClass} relative overflow-visible transition-all duration-1000 ease-in-out`}>
+                                <WebGLBusCard 
+                                  hex={isCrowded ? "#ef4444" : r.hex}
+                                  highlightHex={highlightHex}
+                                  isDot={isDot}
+                                />
+                                <div className="absolute inset-0 z-10 flex items-center justify-center w-full h-full pointer-events-none">
+                                  {inner}
+                                </div>
                               </div>
                             </div>
                           );
