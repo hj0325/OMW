@@ -338,6 +338,33 @@ export default function Home() {
     return date.getUTCHours() * 60 + date.getUTCMinutes();
   };
 
+  const getDynamicInterval = (route, minutes) => {
+    const baseInterval = route.interval;
+    
+    // Dawn / Early Morning (04:00 - 06:30)
+    if (minutes >= 240 && minutes < 390) {
+      return baseInterval * 2.0; // 2x longer interval at dawn
+    }
+    // Early Morning Transition (06:30 - 07:30)
+    if (minutes >= 390 && minutes < 450) {
+      return baseInterval * 1.4; // 1.4x longer interval
+    }
+    // Rush Hour (07:30 - 09:30)
+    if (minutes >= 450 && minutes < 570) {
+      return baseInterval * 0.85; // Slightly more frequent during morning rush hour
+    }
+    // Evening Rush Hour (17:30 - 19:30)
+    if (minutes >= 1050 && minutes < 1170) {
+      return baseInterval * 0.85; // Slightly more frequent during evening rush hour
+    }
+    // Late Night (21:00 - 23:00)
+    if (minutes >= 1260 && minutes < 1380) {
+      return baseInterval * 1.5; // 1.5x longer interval late at night
+    }
+    
+    return baseInterval;
+  };
+
   // Deterministic Multi-Route Simulation Engine
   const getSimulatedBusesForStation = (station) => {
     if (!station) return {};
@@ -377,7 +404,8 @@ export default function Home() {
       let currentArrival = offset;
       while (currentArrival < 1440) {
         arrivals.push(currentArrival);
-        currentArrival += route.interval;
+        const dynamicInterval = getDynamicInterval(route, currentArrival);
+        currentArrival += Math.max(5, Math.round(dynamicInterval)); // Ensure interval is at least 5 mins
       }
       
       const activeBuses = [];
@@ -386,14 +414,16 @@ export default function Home() {
         let diff = arrivalTime - minutesOfDay;
         if (diff < -1400) diff += 1440; // wrap around day boundary
         
-        if (diff >= 0 && diff <= 15) {
+        if (diff >= -3 && diff <= 15) {
           let minutesLeft = diff;
           let status = "NORMAL";
           
           if (isRushHour) {
             status = "CROWDED";
             const delaySeed = (index + seed) % 3;
-            minutesLeft = Math.min(15, minutesLeft + delaySeed);
+            if (diff >= 0) {
+              minutesLeft = Math.min(15, minutesLeft + delaySeed);
+            }
           }
           
           activeBuses.push({
@@ -924,193 +954,228 @@ export default function Home() {
     if (!selectedStation) return null;
 
     return (
-      <div className="space-y-6 py-4 px-2">
-        <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-4">
-          <div>
-            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">실시간 전광판 뷰</span>
-            <h2 className="text-xl font-black text-slate-100 tracking-tight flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
-              <span>정류장별 실시간 도착 전광판 (근처 정류장 통합)</span>
-            </h2>
-          </div>
-          <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-mono px-2.5 py-1 rounded-full border border-indigo-500/20 font-bold">
-            중앙 정류소: {selectedStation.name.replace(" 정류소", "")}
-          </span>
-        </div>
-
-        <div className="space-y-6">
+      <div className="h-full w-full">
+        <div className="h-full w-full flex flex-col gap-4 p-4">
           {activeStations.map(st => {
             const isSelected = st.id === selectedStationId;
-            const buses = getActiveBusesForStation(st);
+            const rawBuses = getActiveBusesForStation(st).slice(0, 8);
+
+            // Calculate adjusted non-overlapping positions
+            const adjustedBuses = [];
+            rawBuses.forEach((bus, index) => {
+              const leftPercent = 6 + ((15 - bus.minutesLeft) / 15) * 84; // 6% ~ 90%
+              
+              // Determine approximate width percent of the card
+              let widthPercent = 6;
+              if (bus.minutesLeft <= 1) {
+                widthPercent = 35; // Hero card: w-72 sm:w-[420px] -> ~35%
+              } else if (bus.minutesLeft < 5) {
+                widthPercent = 22; // Rect card: w-52 sm:w-60 -> ~22%
+              } else if (bus.minutesLeft < 11) {
+                widthPercent = 8;  // Square card: w-16 -> ~8%
+              } else {
+                widthPercent = 6;  // Dot card: w-12 -> ~6%
+              }
+              
+              let adjustedLeft = leftPercent;
+              
+              if (index > 0) {
+                const prevBus = adjustedBuses[index - 1];
+                // The previous bus is further to the right (larger adjustedLeftPercent)
+                // The minimum distance between their centers is (widthPercent_prev + widthPercent_curr) / 2 + gap
+                const minDistance = (prevBus.widthPercent + widthPercent) / 2 + 1.5; // 1.5% extra gap
+                
+                // If the current bus is too close to the previous bus, push it to the left
+                if (adjustedLeft > prevBus.adjustedLeftPercent - minDistance) {
+                  adjustedLeft = prevBus.adjustedLeftPercent - minDistance;
+                }
+              }
+              
+              adjustedBuses.push({
+                ...bus,
+                widthPercent,
+                originalLeftPercent: leftPercent,
+                adjustedLeftPercent: adjustedLeft
+              });
+            });
 
             return (
-              <div 
-                key={`track-${st.id}`} 
-                className={`bg-slate-950/40 border rounded-3xl p-5 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col md:flex-row items-stretch gap-4 ${
-                  isSelected 
-                    ? 'border-indigo-500/40 bg-indigo-950/5 shadow-[0_0_20px_rgba(99,102,241,0.08)]' 
-                    : 'border-slate-900/60'
+              <div
+                key={`station-track-${st.id}`}
+                className={`relative flex-1 min-h-[132px] rounded-3xl overflow-hidden border shadow-[inset_0_0_0_1px_rgba(2,6,23,0.35)] ${
+                  isSelected ? 'border-indigo-500/35' : 'border-slate-900/70'
                 }`}
               >
-                {/* Station Info Panel */}
-                <div className="md:w-48 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-2 border-b md:border-b-0 md:border-r border-slate-900 pb-3 md:pb-0 md:pr-4 shrink-0">
-                  <div>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black border uppercase ${
-                      isSelected 
-                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30 animate-pulse' 
-                        : 'bg-slate-900 text-slate-500 border-slate-800'
-                    }`}>
-                      {isSelected ? '📍 선택된 정류소' : '인근 정류소'}
-                    </span>
-                    <h3 className={`text-sm font-black tracking-tight mt-1.5 ${
-                      isSelected ? 'text-indigo-200' : 'text-slate-100'
-                    }`}>{st.name}</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {st.routes.map(rId => {
-                      const r = ROUTE_DETAILS[rId] || { color: "sky", hex: "#0ea5e9" };
-                      return (
-                        <span 
-                          key={rId} 
-                          className="text-[7px] px-1 py-0.2 rounded font-extrabold border"
-                          style={{ borderColor: `rgba(${r.rgb || "14, 165, 233"}, 0.2)`, color: r.hex, backgroundColor: `rgba(${r.rgb || "14, 165, 233"}, 0.05)` }}
-                        >
-                          {rId.replace("번", "")}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
+                {/* Track Background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#050713] via-[#050A16] to-[#050713]" />
+                <div className="absolute inset-0 opacity-70" style={{
+                  backgroundImage:
+                    'linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0) 18%, rgba(0,0,0,0) 82%, rgba(255,255,255,0.04))'
+                }} />
+                <div className={`absolute inset-0 ${isSelected ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`} style={{
+                  backgroundImage:
+                    'radial-gradient(600px 180px at 70% 50%, rgba(99,102,241,0.18), rgba(99,102,241,0) 60%)'
+                }} />
 
-                {/* Asphalt Track Lane */}
-                <div className="flex-1 min-h-24 relative bg-[#060911] rounded-2xl border border-slate-900/80 overflow-hidden flex items-center px-4">
-                  {/* Milestones (Station markers above the track) */}
-                  <div className="absolute inset-x-0 top-1.5 px-6 flex justify-between pointer-events-none text-[8px] font-black text-slate-600 uppercase tracking-wider">
-                    <span>이전 정류소</span>
-                    <span className="text-indigo-900/40">돌곶이역 2번 출구</span>
-                    <span className="text-emerald-500/40">{st.name.replace(" 정류소", "")} (도착)</span>
-                  </div>
+                {/* Content */}
+                <div className="relative h-full w-full flex items-center">
+                  {/* Main Lane */}
+                  <div className="relative flex-1 h-full px-8">
+                    {/* Station Label */}
+                    <div className="absolute left-6 top-3 flex items-center gap-2">
+                      <span className={`text-[10px] font-black tracking-widest uppercase ${
+                        isSelected ? 'text-indigo-300/90' : 'text-slate-500'
+                      }`}>
+                        {isSelected ? 'SELECTED' : 'NEARBY'}
+                      </span>
+                      <span className={`text-[11px] font-black ${
+                        isSelected ? 'text-slate-100' : 'text-slate-300/90'
+                      }`}>
+                        {st.name.replace(" 정류소", "")}
+                      </span>
+                    </div>
 
-                  {/* Center Dash Line */}
-                  <div className="absolute left-0 right-0 h-0.5 border-t border-dashed border-slate-900/40 pointer-events-none z-0" />
+                    {/* Center Lane Line */}
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-slate-900/80" />
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px border-t border-dashed border-slate-800/60" />
 
-                  {/* Bus Cards Container */}
-                  <div className="flex-1 h-full relative z-10 flex items-center">
-                    {buses.length === 0 ? (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                        <span className="text-[10px] text-slate-500 font-bold italic tracking-wide">이 시간대 운행 버스 없음</span>
-                      </div>
-                    ) : (
-                      buses.map(bus => {
-                        const isCrowded = bus.status === 'CROWDED';
-                        const r = bus.route || { color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", name: bus.routeId };
-                        
-                        // Calculate left position (15m to 0m => 5% to 90%)
-                        const leftPercent = 5 + ((15 - bus.minutesLeft) / 15) * 85;
+                    {/* Bus Cards */}
+                    <div className="relative h-full w-full">
+                      {adjustedBuses.length === 0 ? (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
+                          <span className="text-[11px] text-slate-500 font-black italic tracking-wide">이 시간대 운행 버스 없음</span>
+                        </div>
+                      ) : (
+                        adjustedBuses.map(bus => {
+                          const isCrowded = bus.status === 'CROWDED';
+                          const r = bus.route || { color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", name: bus.routeId };
 
-                        // Dynamic styling based on minutes left
-                        let cardClass = "";
-                        let glowStyle = {};
-                        let textStyle = "";
-                        let labelStyle = "";
+                          // Position (15m => left, 0m => right)
+                          const leftPercent = bus.adjustedLeftPercent;
 
-                        if (bus.minutesLeft >= 11) {
-                          // 1) Distant bus (11-15m): Circle Shape, compact
-                          cardClass = "w-11 h-11 rounded-full flex flex-col items-center justify-center border border-opacity-40 transition-all duration-1000 ease-in-out";
-                          glowStyle = {
-                            backgroundColor: r.hex,
-                            boxShadow: `0 0 12px rgba(${r.rgb}, 0.35)`,
-                            borderColor: `rgba(${r.rgb}, 0.5)`
-                          };
-                          textStyle = "text-[9px] font-black font-mono tracking-tighter -mb-0.5";
-                          labelStyle = "text-[7px] font-black font-mono opacity-80";
-                        } else if (bus.minutesLeft >= 5 && bus.minutesLeft < 11) {
-                          // 2) Mid-distance bus (5-10m): Rounded Rectangle
-                          cardClass = "w-28 h-12 rounded-2xl flex flex-col items-center justify-center border border-opacity-50 transition-all duration-1000 ease-in-out";
-                          glowStyle = {
-                            backgroundColor: r.hex,
-                            boxShadow: `0 0 18px rgba(${r.rgb}, 0.55)`,
-                            borderColor: `rgba(${r.rgb}, 0.7)`
-                          };
-                          textStyle = "text-[10px] font-black tracking-tight font-mono";
-                          labelStyle = "text-[8px] font-black opacity-90 mt-0.5 font-mono";
-                        } else {
-                          // 3) Arrived / Approaching (0-4m): Large glowing card (inspired by "65번" in second image)
-                          const isArrived = bus.minutesLeft <= 1;
-                          const cardWidth = isArrived ? "w-44 sm:w-52" : "w-36";
-                          const cardHeight = isArrived ? "h-14" : "h-12";
-                          
-                          // If arrived, use bright green layout just like the second image!
-                          const bgGradient = isArrived 
-                            ? "bg-gradient-to-r from-emerald-500 to-green-500 border-white" 
-                            : isCrowded 
-                            ? "bg-gradient-to-b from-rose-500 to-rose-600 border-rose-400" 
-                            : "";
+                          const isHero = bus.minutesLeft <= 1;      // very near/arrived: huge rectangle
+                          const isRect = bus.minutesLeft < 5;       // near: rectangle
+                          const isSquare = bus.minutesLeft < 11;    // mid: square
+                          const isDot = bus.minutesLeft >= 11;      // far: circle
 
-                          cardClass = `${cardWidth} ${cardHeight} rounded-2xl flex items-center justify-between px-3 border transition-all duration-1000 ease-in-out ${bgGradient}`;
-                          glowStyle = {
-                            backgroundColor: isArrived || isCrowded ? undefined : r.hex,
-                            boxShadow: `0 0 30px rgba(${isArrived ? "16, 185, 129" : isCrowded ? "239, 68, 68" : r.rgb}, 0.85)`,
-                            borderColor: isArrived || isCrowded ? undefined : `rgba(${r.rgb}, 0.85)`,
-                            borderWidth: "1.5px"
-                          };
-                          textStyle = isArrived ? "text-sm sm:text-base font-black tracking-wide font-mono" : "text-xs font-black tracking-tight font-mono";
-                          labelStyle = isArrived ? "text-[10px] sm:text-[11px] font-black font-mono" : "text-[9px] font-black mt-0.5 font-mono";
-                        }
+                          let cardClass = "";
+                          let inner = null;
+                          let glowStyle = {};
 
-                        return (
-                          <div
-                            key={bus.id}
-                            className="absolute -translate-x-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
-                            style={{ left: `${leftPercent}%`, zIndex: 30 - bus.minutesLeft }}
-                          >
-                            {/* Glowing Bus Card */}
+                          let posStyle = {};
+
+                          if (isHero) {
+                            // Let the hero card slide off the right edge completely without clamping on the right side!
+                            posStyle = {
+                              left: `${leftPercent}%`,
+                              top: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 80 - bus.minutesLeft,
+                              opacity: bus.minutesLeft < 0 ? Math.max(0, 1 + bus.minutesLeft * 0.3) : 1, // Smooth fade out as it slides off!
+                            };
+                          } else {
+                            posStyle = {
+                              left: `${leftPercent}%`,
+                              top: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 50 - bus.minutesLeft
+                            };
+                          }
+
+                          if (isHero) {
+                            cardClass = "w-72 sm:w-[420px] h-20 rounded-2xl flex items-center justify-center border";
+                            glowStyle = {
+                              backgroundImage: "linear-gradient(90deg, rgb(34,197,94), rgb(74,222,128))",
+                              boxShadow: "0 0 54px rgba(34,197,94,0.65)",
+                              borderColor: "rgba(255,255,255,0.6)"
+                            };
+                            inner = (
+                              <div className="flex items-center justify-center w-full h-full">
+                                <span className="text-[44px] sm:text-[56px] font-black tracking-tight leading-none">
+                                  {r.name}
+                                </span>
+                              </div>
+                            );
+                          } else if (isRect) {
+                            // Rectangle (2~4m): wide card
+                            const bg = isCrowded
+                              ? "linear-gradient(180deg, rgb(239,68,68), rgb(220,38,38))"
+                              : `linear-gradient(180deg, ${r.hex}, ${r.hex})`;
+                            cardClass = "w-52 sm:w-60 h-16 rounded-2xl flex items-center justify-between px-4 border";
+                            glowStyle = {
+                              backgroundImage: bg,
+                              boxShadow: `0 0 30px rgba(${isCrowded ? "239,68,68" : r.rgb}, 0.55)`,
+                              borderColor: `rgba(${isCrowded ? "239,68,68" : r.rgb}, 0.55)`
+                            };
+                            inner = (
+                              <div className="flex items-center justify-between w-full h-full px-1">
+                                <div className="flex flex-col items-start">
+                                  <span className="text-[18px] font-black leading-none tracking-tight">
+                                    {r.name}
+                                  </span>
+                                  <span className="text-[12px] font-black opacity-90 mt-1">
+                                    {bus.minutesLeft}분전
+                                  </span>
+                                </div>
+                                {isCrowded && (
+                                  <span className="text-[10px] bg-white text-rose-600 px-2 py-1 rounded-lg font-black">
+                                    혼잡
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          } else if (isSquare) {
+                            // Square (5~10m): square-ish tile
+                            cardClass = "w-16 h-16 rounded-2xl flex flex-col items-center justify-center border";
+                            glowStyle = {
+                              backgroundImage: `linear-gradient(180deg, ${r.hex}, ${r.hex})`,
+                              boxShadow: `0 0 22px rgba(${r.rgb}, 0.45)`,
+                              borderColor: `rgba(${r.rgb}, 0.45)`
+                            };
+                            inner = (
+                              <div className="flex flex-col items-center justify-center w-full h-full">
+                                <span className="text-[13px] font-black tracking-tight leading-none">
+                                  {r.name.replace("번", "")}
+                                </span>
+                                <span className="text-[9px] font-black opacity-90 mt-1.5">
+                                  {bus.minutesLeft}분전
+                                </span>
+                              </div>
+                            );
+                          } else if (isDot) {
+                            // Circle (11~15m): dot
+                            cardClass = "w-12 h-12 rounded-full flex flex-col items-center justify-center border";
+                            glowStyle = {
+                              backgroundImage: `linear-gradient(180deg, ${r.hex}, ${r.hex})`,
+                              boxShadow: `0 0 16px rgba(${r.rgb}, 0.35)`,
+                              borderColor: `rgba(${r.rgb}, 0.45)`
+                            };
+                            inner = (
+                              <div className="flex flex-col items-center justify-center w-full h-full">
+                                <span className="text-[10px] font-black font-mono tracking-tight leading-none">
+                                  {r.name.replace("번", "")}
+                                </span>
+                                <span className="text-[9px] font-black opacity-80 mt-0.5">
+                                  {bus.minutesLeft}m
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
                             <div
-                              className={`${cardClass} text-white shadow-2xl hover:scale-105 hover:brightness-110 cursor-pointer`}
-                              style={glowStyle}
+                              key={`${st.id}-${bus.id}`}
+                              className="absolute transition-all duration-1000 ease-in-out"
+                              style={posStyle}
                             >
-                              {bus.minutesLeft >= 11 ? (
-                                <>
-                                  <span className={textStyle}>{r.name.replace("번", "")}</span>
-                                  <span className={labelStyle}>{bus.minutesLeft}m</span>
-                                </>
-                              ) : bus.minutesLeft >= 5 && bus.minutesLeft < 11 ? (
-                                <>
-                                  <div className="flex items-center space-x-1">
-                                    <BusIcon className="w-3.5 h-3.5 shrink-0" />
-                                    <span className={textStyle}>{r.name}</span>
-                                  </div>
-                                  <span className={labelStyle}>{bus.minutesLeft}분 전</span>
-                                </>
-                              ) : (
-                                // Approaching / Arriving Large Card
-                                <>
-                                  <div className="flex items-center space-x-1.5">
-                                    <BusIcon className="w-4.5 h-4.5 shrink-0" />
-                                    <span className={textStyle}>{r.name}</span>
-                                  </div>
-                                  <div className="flex flex-col items-end">
-                                    <span className={`${labelStyle} font-black`}>
-                                      {bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분 전`}
-                                    </span>
-                                    {isCrowded && (
-                                      <span className="text-[7px] bg-white text-rose-600 px-1 rounded font-black animate-pulse mt-0.5">
-                                        혼잡
-                                      </span>
-                                    )}
-                                  </div>
-                                </>
-                              )}
+                              <div className={`${cardClass} text-white shadow-2xl transition-all duration-1000 ease-in-out`} style={glowStyle}>
+                                {inner}
+                              </div>
                             </div>
-                            
-                            {/* Bottom Guide Dot */}
-                            <div className={`w-1.5 h-1.5 rounded-full border mt-1.5 shadow-sm ${
-                              isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
-                            }`} />
-                          </div>
-                        );
-                      })
-                    )}
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1266,7 +1331,7 @@ export default function Home() {
           </div>
 
           {/* Zoom In View (Multi-Track Dashboard) */}
-          <div className={`absolute inset-0 transition-all duration-700 ease-in-out overflow-y-auto p-6 ${
+          <div className={`absolute inset-0 transition-all duration-700 ease-in-out overflow-hidden p-0 ${
             zoomLevel === 1 ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-105 pointer-events-none'
           }`}>
             {renderMultiTrackDashboard()}
