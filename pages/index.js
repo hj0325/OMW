@@ -9,7 +9,12 @@ import {
   Info, 
   Calendar, 
   Database, 
-  Server
+  Server,
+  ZoomIn,
+  ZoomOut,
+  Sliders,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // Pre-defined popular stations in Seoul with real coordinates and realistic route IDs
@@ -129,16 +134,14 @@ export default function Home() {
   const [selectedStationId, setSelectedStationId] = useState("ST_SEOKGWAN"); // Default: Seokgwan (석관동주민센터)
   const [userLocation, setUserLocation] = useState(null);
   const [targetTime, setTargetTime] = useState(new Date("2026-06-15T14:19:00Z")); // Matches screenshot time
-  const [isLoading, setIsLoading] = useState(false);
   const [dataSource, setDataSource] = useState("checking"); // 'api' | 'local'
   const [isPlaying, setIsPlaying] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(3); // 1: 전광판, 2: 4개역, 3: 7개역, 4: 11개역, 5: 모든역
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
 
-  const mapRef = useRef(null);
-  const markersRef = useRef({});
-  const userMarkerRef = useRef(null);
   const playIntervalRef = useRef(null);
 
-  const selectedStation = stations.find(s => s.id === selectedStationId);
+  const selectedStation = stations.find(s => s.id === selectedStationId) || stations[0];
 
   // Check backend connection on mount
   useEffect(() => {
@@ -157,192 +160,82 @@ export default function Home() {
     checkBackend();
   }, []);
 
-  // Initialize Leaflet Map
+  // Get User Location on Mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Load Leaflet script dynamically
-    const script = document.createElement('script');
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
-    script.crossOrigin = "";
-    
-    script.onload = () => {
-      const L = window.L;
-      if (!L) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const userCoords = [latitude, longitude];
+          setUserLocation(userCoords);
 
-      // Initialize map centered on Seoul (around Seokgwan for default view)
-      const map = L.map('map', {
-        zoomControl: true,
-        attributionControl: true
-      }).setView([37.6062, 127.0622], 14);
-
-      mapRef.current = map;
-
-      // CartoDB Dark Matter Tile Layer (Modern dark theme map)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-      }).addTo(map);
-
-      // Render Station Markers
-      renderStationMarkers();
-
-      // Click on Map to Create Station
-      map.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        handleMapClick(lat, lng);
-      });
-
-      // Get User Location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            const userCoords = [latitude, longitude];
-            setUserLocation(userCoords);
-
-            // Add User Location Marker
-            const userIcon = L.divIcon({
-              className: 'custom-user-icon',
-              html: `
-                <div class="relative flex items-center justify-center w-6 h-6">
-                  <div class="absolute w-6 h-6 rounded-full bg-indigo-500 opacity-40 animate-ping"></div>
-                  <div class="relative w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-white shadow-md"></div>
-                </div>
-              `,
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
-            });
-
-            if (userMarkerRef.current) {
-              userMarkerRef.current.remove();
+          // Dynamically create a station at user's exact location
+          const userStationId = `ST_USER_${Date.now()}`;
+          
+          let neighborhoodName = "내 위치";
+          let minDistance = Infinity;
+          NEIGHBORHOODS.forEach(nb => {
+            const dist = Math.sqrt(Math.pow(nb.lat - latitude, 2) + Math.pow(nb.lng - longitude, 2));
+            if (dist < minDistance) {
+              minDistance = dist;
+              neighborhoodName = nb.name;
             }
-            userMarkerRef.current = L.marker(userCoords, { icon: userIcon }).addTo(map);
+          });
+          
+          const userStationName = `${neighborhoodName} 내 위치 정류소`;
+          
+          // Assign 3-4 routes deterministically based on coordinates
+          const allRouteKeys = Object.keys(ROUTE_DETAILS);
+          const seed = Math.floor((latitude + longitude) * 1000);
+          const shuffledRoutes = [...allRouteKeys].sort(() => 0.5 - ((seed % 10) / 10));
+          const assignedRoutes = shuffledRoutes.slice(0, 3 + (seed % 2));
+          
+          const userStation = {
+            id: userStationId,
+            name: userStationName,
+            lat: latitude,
+            lng: longitude,
+            routes: assignedRoutes
+          };
+          
+          setStations(prev => {
+            const filtered = prev.filter(s => !s.id.startsWith("ST_USER_"));
+            return [...filtered, userStation];
+          });
+          setSelectedStationId(userStationId);
 
-            // Smooth fly to user location
-            map.flyTo(userCoords, 15);
-
-            // Dynamically create a station at user's exact location
-            const userStationId = `ST_USER_${Date.now()}`;
-            
-            // Fallback neighborhood name from local list
-            let neighborhoodName = "내 위치";
-            let minDistance = Infinity;
-            NEIGHBORHOODS.forEach(nb => {
-              const dist = Math.sqrt(Math.pow(nb.lat - latitude, 2) + Math.pow(nb.lng - longitude, 2));
-              if (dist < minDistance) {
-                minDistance = dist;
-                neighborhoodName = nb.name;
-              }
-            });
-            
-            const userStationName = `${neighborhoodName} 내 위치 정류소`;
-            
-            // Assign 3-4 routes deterministically based on coordinates
-            const allRouteKeys = Object.keys(ROUTE_DETAILS);
-            const seed = Math.floor((latitude + longitude) * 1000);
-            const shuffledRoutes = [...allRouteKeys].sort(() => 0.5 - ((seed % 10) / 10));
-            const assignedRoutes = shuffledRoutes.slice(0, 3 + (seed % 2));
-            
-            const userStation = {
-              id: userStationId,
-              name: userStationName,
-              lat: latitude,
-              lng: longitude,
-              routes: assignedRoutes
-            };
-            
-            setStations(prev => {
-              const filtered = prev.filter(s => !s.id.startsWith("ST_USER_"));
-              return [...filtered, userStation];
-            });
-            setSelectedStationId(userStationId);
-
-            // Fetch real name via Nominatim reverse geocoding
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
-              headers: {
-                'User-Agent': 'BusArrivalPredictionPrototype/1.0'
-              }
+          // Fetch real name via Nominatim reverse geocoding
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
+            headers: {
+              'User-Agent': 'BusArrivalPredictionPrototype/1.0'
+            }
+          })
+            .then(res => res.json())
+            .then(data => {
+              const addr = data.address;
+              const realName = addr.neighbourhood || addr.suburb || addr.village || addr.town || addr.city_district || neighborhoodName;
+              const updatedName = `${realName} 내 위치 정류소`;
+              
+              setStations(prev => prev.map(s => {
+                if (s.id === userStationId) {
+                  return { ...s, name: updatedName };
+                }
+                return s;
+              }));
             })
-              .then(res => res.json())
-              .then(data => {
-                const addr = data.address;
-                const realName = addr.neighbourhood || addr.suburb || addr.village || addr.town || addr.city_district || neighborhoodName;
-                const updatedName = `${realName} 내 위치 정류소`;
-                
-                setStations(prev => prev.map(s => {
-                  if (s.id === userStationId) {
-                    return { ...s, name: updatedName };
-                  }
-                  return s;
-                }));
-              })
-              .catch(err => console.error("Nominatim user location error:", err));
-          },
-          (error) => {
-            console.warn("Geolocation error:", error.message);
-            // Default fly to Seokgwan
-            map.flyTo([37.6062, 127.0622], 14);
-          }
-        );
-      } else {
-        map.flyTo([37.6062, 127.0622], 14);
-      }
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-      script.remove();
-    };
+            .catch(err => console.error("Nominatim user location error:", err));
+        },
+        (error) => {
+          console.warn("Geolocation error:", error.message);
+        }
+      );
+    }
   }, []);
 
-  // Render Station Markers
-  const renderStationMarkers = () => {
-    const L = window.L;
-    if (!L || !mapRef.current) return;
-
-    // Clear existing markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
-
-    stations.forEach(st => {
-      const isSelected = st.id === selectedStationId;
-      
-      const stationIcon = L.divIcon({
-        className: isSelected ? 'custom-station-selected' : 'custom-station',
-        html: isSelected 
-          ? `<div class="w-9 h-9 rounded-full bg-indigo-600 border-2 border-white shadow-[0_0_15px_rgba(79,70,229,0.6)] flex items-center justify-center text-white font-extrabold text-sm animate-bounce ring-4 ring-indigo-500/20">📍</div>`
-          : `<div class="w-6.5 h-6.5 rounded-full bg-slate-800 border-2 border-indigo-400 shadow-md flex items-center justify-center text-white font-extrabold text-[10px] hover:scale-115 hover:border-indigo-300 transition-all duration-200">📍</div>`,
-        iconSize: isSelected ? [36, 36] : [26, 26],
-        iconAnchor: isSelected ? [18, 18] : [13, 13]
-      });
-
-      const marker = L.marker([st.lat, st.lng], { icon: stationIcon })
-        .addTo(mapRef.current)
-        .on('click', () => {
-          setSelectedStationId(st.id);
-          mapRef.current.flyTo([st.lat, st.lng], 16);
-        });
-      
-      markersRef.current[st.id] = marker;
-    });
-  };
-
-  // Re-render markers when selectedStationId or stations list changes
-  useEffect(() => {
-    renderStationMarkers();
-  }, [selectedStationId, stations]);
-
-  // Handle Map Click to Create Station
+  // Handle Canvas Click to Create Station
   const handleMapClick = async (lat, lng) => {
-    // Find closest neighborhood for a realistic name
     let closestNb = NEIGHBORHOODS[0];
     let minDistance = Infinity;
     
@@ -374,10 +267,6 @@ export default function Home() {
     setStations(prev => [...prev, newStation]);
     setSelectedStationId(newStationId);
     
-    if (mapRef.current) {
-      mapRef.current.flyTo([lat, lng], 16);
-    }
-
     // Fetch real name via Nominatim reverse geocoding
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`, {
       headers: {
@@ -400,10 +289,17 @@ export default function Home() {
       .catch(err => console.error("Nominatim click error:", err));
   };
 
-  // Move Map to User Location
+  // Move to User Location
   const handleMoveToUserLocation = () => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.flyTo(userLocation, 16);
+    if (userLocation) {
+      // Find the user station in the list
+      const userSt = stations.find(s => s.id.startsWith("ST_USER_"));
+      if (userSt) {
+        setSelectedStationId(userSt.id);
+        setZoomLevel(1); // Zoom in to electronic board
+      } else {
+        alert("내 위치 정류소를 생성하는 중입니다. 잠시만 기다려주세요.");
+      }
     } else {
       alert("사용자의 현재 위치를 가져오는 중이거나 권한이 거부되었습니다.");
     }
@@ -517,115 +413,713 @@ export default function Home() {
 
   const simulatedBuses = getSimulatedBuses();
 
-  // Aggregate all active buses from all routes of the selected station for a single unified timeline lane
-  const getAllActiveBuses = () => {
-    if (!selectedStation) return [];
-    const allBuses = [];
-    selectedStation.routes.forEach(routeId => {
-      const route = ROUTE_DETAILS[routeId];
-      if (!route) return;
-      const activeBusesForRoute = simulatedBuses[routeId] || [];
-      activeBusesForRoute.forEach(bus => {
-        allBuses.push({
-          ...bus,
-          routeId,
-          route
-        });
-      });
-    });
-    // Sort by minutesLeft so they are ordered by predicted arrival times (closest first)
-    allBuses.sort((a, b) => a.minutesLeft - b.minutesLeft);
-    
-    // Calculate horizontal positions with spacing to prevent overlapping
-    const spacingPercent = 3.5; // spacing between cards
-    const positions = [];
-    
-    for (let i = 0; i < allBuses.length; i++) {
-      const bus = allBuses[i];
-      
-      // Determine width percentage of this card
-      let widthPercent = 7;
-      if (bus.minutesLeft >= 12) {
-        widthPercent = 7;
-      } else if (bus.minutesLeft >= 5) {
-        widthPercent = 18;
-      } else if (bus.minutesLeft >= 2) {
-        widthPercent = 27;
-      } else {
-        widthPercent = 36;
-      }
-      
-      // Natural left percent: maps 15m (8%) to 0m (92%)
-      const naturalLeft = ((15 - bus.minutesLeft) / 15) * 84 + 8;
-      
-      let finalLeft = naturalLeft;
-      if (i === 0) {
-        // First bus (closest to arrival) just uses its natural position (capped at 90%)
-        finalLeft = Math.min(90, naturalLeft);
-      } else {
-        // Subsequent buses must be placed to the left of the previous bus
-        const prevBus = allBuses[i - 1];
-        const prevLeft = positions[i - 1];
-        
-        let prevWidthPercent = 7;
-        if (prevBus.minutesLeft >= 12) {
-          prevWidthPercent = 7;
-        } else if (prevBus.minutesLeft >= 5) {
-          prevWidthPercent = 18;
-        } else if (prevBus.minutesLeft >= 2) {
-          prevWidthPercent = 27;
+  // Mouse wheel zoom handler
+  useEffect(() => {
+    const handleWheel = (e) => {
+      e.preventDefault(); // Prevent default page scrolling
+      if (Math.abs(e.deltaY) > 10) {
+        if (e.deltaY > 0) {
+          // Scroll down -> Zoom Out (increase zoomLevel up to 5)
+          setZoomLevel(prev => Math.min(5, prev + 1));
         } else {
-          prevWidthPercent = 36;
+          // Scroll up -> Zoom In (decrease zoomLevel down to 1)
+          setZoomLevel(prev => Math.max(1, prev - 1));
         }
-        
-        // Minimum distance is half of prev width + half of current width + spacing
-        const minDistance = (prevWidthPercent + widthPercent) / 2 + spacingPercent;
-        const maxLeftAllowed = prevLeft - minDistance;
-        
-        // Ensure it is pushed left to avoid overlap
-        finalLeft = Math.min(naturalLeft, maxLeftAllowed);
       }
-      
-      positions.push(finalLeft);
-      bus.leftPercent = finalLeft;
+    };
+
+    const container = document.getElementById('art-canvas-container');
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
     }
-    
-    return allBuses;
+    return () => {
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, []);
+
+  const formatStationNameForSvg = (name, total) => {
+    let cleanName = name.replace(" 정류소", "").replace(" 환승센터", "").replace(" 가상정류소", "").replace(" 가상 정류소", "");
+    if (total > 8 && cleanName.length > 6) {
+      cleanName = cleanName.slice(0, 5) + "..";
+    }
+    return cleanName;
   };
 
-  const allActiveBuses = getAllActiveBuses();
+  // Helper to get closest stations centered around the user location or selected station depending on zoom level
+  const getActiveStations = () => {
+    // Center around userLocation if available, otherwise selectedStation
+    const centerLat = userLocation ? userLocation[0] : selectedStation.lat;
+    const centerLng = userLocation ? userLocation[1] : selectedStation.lng;
+    
+    const stationsWithDistance = stations.map(st => {
+      const dist = Math.sqrt(
+        Math.pow(st.lat - centerLat, 2) + 
+        Math.pow(st.lng - centerLng, 2)
+      );
+      return { ...st, dist };
+    });
+    
+    // Sort by distance
+    const sortedByDist = stationsWithDistance.sort((a, b) => a.dist - b.dist);
+    
+    // Number of stations to show based on zoom level (2 to 5)
+    let count = 7;
+    if (zoomLevel <= 2) count = 4;
+    else if (zoomLevel === 3) count = 7;
+    else if (zoomLevel === 4) count = 11;
+    else if (zoomLevel === 5) count = stations.length;
+    
+    const closest = sortedByDist.slice(0, count);
+    
+    // Sort by longitude (west to east) so they are rendered in geographic order on the X-axis
+    return closest.sort((a, b) => a.lng - b.lng);
+  };
+
+  const activeStations = getActiveStations();
+
+  // Find all unique routes passing through any of the active 6 stations
+  const getActiveRoutes = () => {
+    const activeRoutesSet = new Set();
+    activeStations.forEach(st => {
+      st.routes.forEach(r => activeRoutesSet.add(r));
+    });
+    return Array.from(activeRoutesSet).sort((a, b) => {
+      const typeA = ROUTE_DETAILS[a]?.type || "";
+      const typeB = ROUTE_DETAILS[b]?.type || "";
+      return typeA.localeCompare(typeB); // Group by type beautifully
+    });
+  };
+
+  const activeRoutes = getActiveRoutes();
+
+  // Handle SVG Canvas Click to add virtual station
+  const handleSvgCanvasClick = (e) => {
+    // Ignore if clicked an interactive element like a node or text
+    if (e.target.closest('.interactive-node') || e.target.closest('.control-btn')) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Linear mapping from SVG coordinates to Seoul lat/lng bounds
+    const LAT_MIN = 37.49;
+    const LAT_MAX = 37.62;
+    const LNG_MIN = 127.01;
+    const LNG_MAX = 127.11;
+
+    const lng = LNG_MIN + (x / rect.width) * (LNG_MAX - LNG_MIN);
+    const lat = LAT_MAX - (y / rect.height) * (LAT_MAX - LAT_MIN);
+
+    handleMapClick(lat, lng);
+  };
+
+  // Render Zoom Out View: Artistic SVG Route Map
+  const renderSvgMap = () => {
+    const S = activeStations.length;
+    const R = activeRoutes.length;
+
+    // Dynamic Station X spacing based on total active stations to prevent overlapping
+    const getStationX = (index) => {
+      let startX = 180;
+      let endX = 660;
+      
+      if (S <= 4) {
+        startX = 280;
+        endX = 720;
+      } else if (S <= 7) {
+        startX = 180;
+        endX = 820;
+      } else if (S <= 11) {
+        startX = 120;
+        endX = 880;
+      } else {
+        startX = 80;
+        endX = 920;
+      }
+      
+      return startX + index * ((endX - startX) / (S - 1 || 1));
+    };
+
+    const getRouteY = (index) => 160 + index * (340 / (R - 1 || 1));
+
+    return (
+      <svg 
+        className="w-full h-full select-none bg-black" 
+        viewBox="0 0 1000 600"
+      >
+        {/* Definitions for Glow Filters and Gradients */}
+        <defs>
+          <filter id="neon-glow-emerald" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="neon-glow-sky" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="neon-glow-rose" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="neon-glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="neon-glow-indigo" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <linearGradient id="selected-column-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(99, 102, 241, 0)" />
+            <stop offset="50%" stopColor="rgba(99, 102, 241, 0.12)" />
+            <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
+          </linearGradient>
+        </defs>
+
+        {/* Cyber Grid Background */}
+        <g stroke="rgba(255, 255, 255, 0.015)" strokeWidth="1">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <line key={`v-${i}`} x1={i * 50} y1={0} x2={i * 50} y2={600} />
+          ))}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <line key={`h-${i}`} x1={0} y1={i * 50} x2={1000} y2={i * 50} />
+          ))}
+        </g>
+
+        {/* Selected Station Scanner Beam */}
+        {activeStations.map((st, index) => {
+          if (st.id !== selectedStationId) return null;
+          const x = getStationX(index);
+          return (
+            <g key="scanner-beam">
+              <rect 
+                x={x - 22} 
+                y={80} 
+                width={44} 
+                height={480} 
+                rx={12} 
+                fill="url(#selected-column-grad)" 
+                stroke="rgba(99, 102, 241, 0.25)" 
+                strokeWidth={1.5} 
+                strokeDasharray="4 4" 
+              />
+              <line 
+                x1={x} 
+                y1={80} 
+                x2={x} 
+                y2={560} 
+                stroke="rgba(99, 102, 241, 0.4)" 
+                strokeWidth={1} 
+                strokeDasharray="2 6" 
+              />
+            </g>
+          );
+        })}
+
+        {/* Station Vertical Columns (Subtle background guide lines) */}
+        {activeStations.map((st, index) => {
+          const x = getStationX(index);
+          return (
+            <line 
+              key={`st-line-${st.id}`} 
+              x1={x} 
+              y1={120} 
+              x2={x} 
+              y2={520} 
+              stroke="rgba(255, 255, 255, 0.03)" 
+              strokeWidth={1} 
+              strokeDasharray="2 2" 
+            />
+          );
+        })}
+
+        {/* Glowing Bus Route Lines (Cascade curves on the right) */}
+        {activeRoutes.map((routeId, index) => {
+          const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
+          const y = getRouteY(index);
+          const filterId = `url(#neon-glow-${r.color})`;
+
+          const lastStationX = getStationX(S - 1);
+          const curveStart = Math.min(940, lastStationX + 30 + (index * 6));
+          const curveEnd = Math.min(970, curveStart + 20);
+
+          let pathD = "";
+          if (index < R / 3) {
+            // Top routes curve upwards
+            pathD = `M 60,${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y - 40} L ${curveEnd},45`;
+          } else if (index >= R / 3 && index < 2 * R / 3) {
+            // Middle routes go straight
+            pathD = `M 60,${y} L 960,${y}`;
+          } else {
+            // Bottom routes curve downwards
+            pathD = `M 60,${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y + 40} L ${curveEnd},555`;
+          }
+
+          return (
+            <g key={`route-line-${routeId}`}>
+              {/* Neon Glow Outer Line */}
+              <path 
+                d={pathD} 
+                stroke={r.hex} 
+                strokeWidth={5} 
+                fill="none" 
+                opacity={0.4} 
+                filter={filterId} 
+              />
+              {/* Sharp Inner Line */}
+              <path 
+                d={pathD} 
+                stroke={r.hex} 
+                strokeWidth={2.5} 
+                fill="none" 
+              />
+            </g>
+          );
+        })}
+
+        {/* Route Labels on the Left Side */}
+        {activeRoutes.map((routeId, index) => {
+          const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
+          const y = getRouteY(index);
+          return (
+            <g key={`label-left-${routeId}`}>
+              <rect 
+                x={20} 
+                y={y - 10} 
+                width={50} 
+                height={20} 
+                rx={6} 
+                fill="rgba(0, 0, 0, 0.85)" 
+                stroke={r.hex} 
+                strokeWidth={1.5} 
+              />
+              <text 
+                x={45} 
+                y={y + 4} 
+                className="text-[10px] font-black font-mono tracking-tight" 
+                fill="white" 
+                textAnchor="middle"
+              >
+                {routeId.replace("번", "")}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Route Labels at the curve ends (Vertical text) */}
+        {activeRoutes.map((routeId, index) => {
+          const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
+          const y = getRouteY(index);
+          const lastStationX = getStationX(S - 1);
+          const curveStart = Math.min(940, lastStationX + 30 + (index * 6));
+          const curveEnd = Math.min(970, curveStart + 20);
+
+          if (index < R / 3) {
+            // Top routes (Vertical text at the top)
+            return (
+              <text 
+                key={`label-end-${routeId}`}
+                x={curveEnd} 
+                y={30} 
+                transform={`rotate(-90, ${curveEnd}, 30)`} 
+                className="text-[8px] font-extrabold font-mono" 
+                fill={r.hex} 
+                textAnchor="end"
+                opacity={0.8}
+              >
+                {routeId}
+              </text>
+            );
+          } else if (index >= 2 * R / 3) {
+            // Bottom routes (Vertical text at the bottom)
+            return (
+              <text 
+                key={`label-end-${routeId}`}
+                x={curveEnd} 
+                y={570} 
+                transform={`rotate(-90, ${curveEnd}, 570)`} 
+                className="text-[8px] font-extrabold font-mono" 
+                fill={r.hex} 
+                textAnchor="start"
+                opacity={0.8}
+              >
+                {routeId}
+              </text>
+            );
+          } else {
+            // Straight middle routes (Horizontal text at the right edge)
+            return (
+              <text 
+                key={`label-end-${routeId}`}
+                x={Math.min(980, curveEnd + 10)} 
+                y={y + 3} 
+                className="text-[8px] font-extrabold font-mono" 
+                fill={r.hex} 
+                textAnchor="start"
+                opacity={0.8}
+              >
+                {routeId}
+              </text>
+            );
+          }
+        })}
+
+        {/* Station Nodes (Intersections) */}
+        {activeStations.map((st, sIdx) => {
+          const x = getStationX(sIdx);
+          const isSelectedStation = st.id === selectedStationId;
+
+          return (
+            <g key={`st-nodes-${st.id}`} className="interactive-node">
+              {activeRoutes.map((routeId, rIdx) => {
+                const hasRoute = st.routes.includes(routeId);
+                if (!hasRoute) return null;
+
+                const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
+                const y = getRouteY(rIdx);
+
+                // Deterministic direction arrow
+                let arrow = "→";
+                const stopsAt = activeStations.filter(s => s.routes.includes(routeId));
+                const currentStopIdx = stopsAt.findIndex(s => s.id === st.id);
+                if (currentStopIdx !== -1 && currentStopIdx < stopsAt.length - 1) {
+                  const nextStop = stopsAt[currentStopIdx + 1];
+                  const nextStIdx = activeStations.findIndex(s => s.id === nextStop.id);
+                  arrow = nextStIdx > sIdx ? "→" : "←";
+                } else {
+                  // Fallback based on route index
+                  arrow = rIdx % 2 === 0 ? "→" : "←";
+                }
+
+                return (
+                  <g 
+                    key={`node-${st.id}-${routeId}`} 
+                    className="cursor-pointer group"
+                    onClick={() => {
+                      setSelectedStationId(st.id);
+                      setZoomLevel(1); // Zoom in to electronic board
+                    }}
+                  >
+                    {/* Pulsing Highlight for Selected Station Nodes */}
+                    {isSelectedStation && (
+                      <circle 
+                        cx={x} 
+                        cy={y} 
+                        r={16} 
+                        fill={r.hex} 
+                        opacity={0.2} 
+                        className="animate-ping" 
+                      />
+                    )}
+
+                    {/* Outer Node Circle */}
+                    <circle 
+                      cx={x} 
+                      cy={y} 
+                      r={isSelectedStation ? 11 : 8.5} 
+                      fill={isSelectedStation ? r.hex : "#000000"} 
+                      stroke={isSelectedStation ? "white" : r.hex} 
+                      strokeWidth={isSelectedStation ? 2 : 2.5} 
+                      className="transition-all duration-300 group-hover:scale-125"
+                    />
+
+                    {/* Direction Arrow */}
+                    <text 
+                      x={x} 
+                      y={isSelectedStation ? y + 3.5 : y + 3} 
+                      className={`font-black text-center select-none ${
+                        isSelectedStation ? "text-[10px]" : "text-[8px]"
+                      }`} 
+                      fill={isSelectedStation ? "white" : r.hex} 
+                      textAnchor="middle"
+                    >
+                      {arrow}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+
+        {/* Station Labels (Rotated at the top of columns) */}
+        {activeStations.map((st, index) => {
+          const x = getStationX(index);
+          const isSelected = st.id === selectedStationId;
+          return (
+            <g 
+              key={`label-st-${st.id}`} 
+              className="cursor-pointer"
+              onClick={() => {
+                setSelectedStationId(st.id);
+                setZoomLevel(1); // Zoom in to electronic board
+              }}
+            >
+              {/* Vertical Station Name */}
+              <text 
+                x={x} 
+                y={115} 
+                transform={`rotate(-90, ${x}, 115)`} 
+                className={`font-black tracking-tight transition-all duration-300 ${
+                  isSelected 
+                    ? "text-[12px] fill-indigo-400 font-extrabold" 
+                    : "text-[10px] fill-slate-400 font-bold hover:fill-slate-200"
+                }`} 
+                textAnchor="end"
+              >
+                {formatStationNameForSvg(st.name, S)}
+              </text>
+
+              {/* Glowing Indicator Dot */}
+              <circle 
+                cx={x} 
+                y={125} 
+                r={isSelected ? 4 : 2.5} 
+                fill={isSelected ? "#818cf8" : "#475569"} 
+                className={isSelected ? "animate-pulse" : ""}
+                stroke={isSelected ? "white" : "none"}
+                strokeWidth={0.5}
+              />
+            </g>
+          );
+        })}
+      </svg>
+    );
+  };
+
+  // Render Zoom In View: Multi-Track Neon Dashboard (Second Image)
+  const renderMultiTrackDashboard = () => {
+    if (!selectedStation) return null;
+
+    return (
+      <div className="space-y-6 py-4 px-2">
+        <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-4">
+          <div>
+            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">실시간 전광판 뷰</span>
+            <h2 className="text-xl font-black text-slate-100 tracking-tight flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+              <span>{selectedStation.name} 도착 전광판</span>
+            </h2>
+          </div>
+          <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-mono px-2.5 py-1 rounded-full border border-indigo-500/20 font-bold">
+            ARS ID {selectedStation.arsId || "가상"}
+          </span>
+        </div>
+
+        <div className="space-y-6">
+          {selectedStation.routes.map(routeId => {
+            const r = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129" };
+            const buses = simulatedBuses[routeId] || [];
+
+            return (
+              <div 
+                key={`track-${routeId}`} 
+                className="bg-slate-950/40 border border-slate-900/60 rounded-3xl p-5 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col md:flex-row items-stretch gap-4"
+              >
+                {/* Route Badge Panel */}
+                <div className="md:w-36 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-2 border-b md:border-b-0 md:border-r border-slate-900 pb-3 md:pb-0 md:pr-4 shrink-0">
+                  <div>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black border uppercase ${
+                      r.type === '지선' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/15' :
+                      r.type === '광역' ? 'bg-rose-500/5 text-rose-400 border-rose-500/15' :
+                      r.type === '간선' ? 'bg-sky-500/5 text-sky-400 border-sky-500/15' :
+                      r.type === '순환' ? 'bg-amber-500/5 text-amber-400 border-amber-500/15' :
+                      'bg-indigo-500/5 text-indigo-400 border-indigo-500/15'
+                    }`}>
+                      {r.type}
+                    </span>
+                    <h3 className="text-lg font-black text-slate-100 tracking-tight mt-1.5">{r.name}</h3>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono font-bold">
+                    배차 {r.interval}분
+                  </div>
+                </div>
+
+                {/* Asphalt Track Lane */}
+                <div className="flex-1 min-h-24 relative bg-[#060911] rounded-2xl border border-slate-900/80 overflow-hidden flex items-center px-4">
+                  {/* Milestones (Station markers above the track) */}
+                  <div className="absolute inset-x-0 top-1.5 px-6 flex justify-between pointer-events-none text-[8px] font-black text-slate-600 uppercase tracking-wider">
+                    <span>이전 정류소</span>
+                    <span className="text-indigo-900/40">돌곶이역 2번 출구</span>
+                    <span className="text-emerald-500/40">{selectedStation.name.replace(" 정류소", "")} (도착)</span>
+                  </div>
+
+                  {/* Center Dash Line */}
+                  <div className="absolute left-0 right-0 h-0.5 border-t border-dashed border-slate-900 pointer-events-none z-0" />
+
+                  {/* Bus Cards Container */}
+                  <div className="flex-1 h-full relative z-10 flex items-center">
+                    {buses.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                        <span className="text-[10px] text-slate-500 font-bold italic tracking-wide">이 시간대 운행 버스 없음</span>
+                      </div>
+                    ) : (
+                      buses.map(bus => {
+                        const isCrowded = bus.status === 'CROWDED';
+                        
+                        // Calculate left position (15m to 0m => 5% to 90%)
+                        const leftPercent = 5 + ((15 - bus.minutesLeft) / 15) * 85;
+
+                        // Dynamic styling based on minutes left
+                        let cardClass = "";
+                        let glowStyle = {};
+                        let textStyle = "";
+                        let labelStyle = "";
+
+                        if (bus.minutesLeft >= 11) {
+                          // 1) Distant bus (11-15m): Circle Shape, compact
+                          cardClass = "w-11 h-11 rounded-full flex flex-col items-center justify-center border border-opacity-40 transition-all duration-1000 ease-in-out";
+                          glowStyle = {
+                            backgroundColor: r.hex,
+                            boxShadow: `0 0 12px rgba(${r.rgb}, 0.35)`,
+                            borderColor: `rgba(${r.rgb}, 0.5)`
+                          };
+                          textStyle = "text-[9px] font-black font-mono tracking-tighter -mb-0.5";
+                          labelStyle = "text-[7px] font-black font-mono opacity-80";
+                        } else if (bus.minutesLeft >= 5 && bus.minutesLeft < 11) {
+                          // 2) Mid-distance bus (5-10m): Rounded Rectangle
+                          cardClass = "w-28 h-12 rounded-2xl flex flex-col items-center justify-center border border-opacity-50 transition-all duration-1000 ease-in-out";
+                          glowStyle = {
+                            backgroundColor: r.hex,
+                            boxShadow: `0 0 18px rgba(${r.rgb}, 0.55)`,
+                            borderColor: `rgba(${r.rgb}, 0.7)`
+                          };
+                          textStyle = "text-[10px] font-black tracking-tight font-mono";
+                          labelStyle = "text-[8px] font-black opacity-90 mt-0.5 font-mono";
+                        } else {
+                          // 3) Arrived / Approaching (0-4m): Large glowing card (inspired by "65번" in second image)
+                          const isArrived = bus.minutesLeft <= 1;
+                          const cardWidth = isArrived ? "w-44 sm:w-52" : "w-36";
+                          const cardHeight = isArrived ? "h-14" : "h-12";
+                          
+                          // If arrived, use bright green layout just like the second image!
+                          const bgGradient = isArrived 
+                            ? "bg-gradient-to-r from-emerald-500 to-green-500 border-white" 
+                            : isCrowded 
+                            ? "bg-gradient-to-b from-rose-500 to-rose-600 border-rose-400" 
+                            : "";
+
+                          cardClass = `${cardWidth} ${cardHeight} rounded-2xl flex items-center justify-between px-3 border transition-all duration-1000 ease-in-out ${bgGradient}`;
+                          glowStyle = {
+                            backgroundColor: isArrived || isCrowded ? undefined : r.hex,
+                            boxShadow: `0 0 30px rgba(${isArrived ? "16, 185, 129" : isCrowded ? "239, 68, 68" : r.rgb}, 0.85)`,
+                            borderColor: isArrived || isCrowded ? undefined : `rgba(${r.rgb}, 0.85)`,
+                            borderWidth: "1.5px"
+                          };
+                          textStyle = isArrived ? "text-sm sm:text-base font-black tracking-wide font-mono" : "text-xs font-black tracking-tight font-mono";
+                          labelStyle = isArrived ? "text-[10px] sm:text-[11px] font-black font-mono" : "text-[9px] font-black mt-0.5 font-mono";
+                        }
+
+                        return (
+                          <div
+                            key={bus.id}
+                            className="absolute -translate-x-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
+                            style={{ left: `${leftPercent}%`, zIndex: 30 - bus.minutesLeft }}
+                          >
+                            {/* Glowing Bus Card */}
+                            <div
+                              className={`${cardClass} text-white shadow-2xl hover:scale-105 hover:brightness-110 cursor-pointer`}
+                              style={glowStyle}
+                            >
+                              {bus.minutesLeft >= 11 ? (
+                                <>
+                                  <span className={textStyle}>{r.name.replace("번", "")}</span>
+                                  <span className={labelStyle}>{bus.minutesLeft}m</span>
+                                </>
+                              ) : bus.minutesLeft >= 5 && bus.minutesLeft < 11 ? (
+                                <>
+                                  <div className="flex items-center space-x-1">
+                                    <BusIcon className="w-3.5 h-3.5 shrink-0" />
+                                    <span className={textStyle}>{r.name}</span>
+                                  </div>
+                                  <span className={labelStyle}>{bus.minutesLeft}분 전</span>
+                                </>
+                              ) : (
+                                // Approaching / Arriving Large Card
+                                <>
+                                  <div className="flex items-center space-x-1.5">
+                                    <BusIcon className="w-4.5 h-4.5 shrink-0" />
+                                    <span className={textStyle}>{r.name}</span>
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                    <span className={`${labelStyle} font-black`}>
+                                      {bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분 전`}
+                                    </span>
+                                    {isCrowded && (
+                                      <span className="text-[7px] bg-white text-rose-600 px-1 rounded font-black animate-pulse mt-0.5">
+                                        혼잡
+                                      </span>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Bottom Guide Dot */}
+                            <div className={`w-1.5 h-1.5 rounded-full border mt-1.5 shadow-sm ${
+                              isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
+                            }`} />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-black text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200 overflow-hidden">
       <Head>
-        <title>Bus Arrival Prediction Pro</title>
-        {/* Leaflet CSS from CDN */}
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
+        <title>Bus Arrival Prediction Art</title>
       </Head>
 
-      {/* Header */}
-      <header className="border-b border-slate-900 bg-slate-950/85 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      {/* Futuristic Header */}
+      <header className="border-b border-slate-900/60 bg-black/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20">
-            <Navigation className="h-5 w-5" />
+          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+            <Navigation className="h-4.5 w-4.5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-indigo-300 via-purple-400 to-pink-300 bg-clip-text text-transparent">
-              Bus Arrival Prediction Pro
+            <h1 className="text-md font-black tracking-tight bg-gradient-to-r from-indigo-300 via-purple-400 to-pink-300 bg-clip-text text-transparent">
+              Bus Arrival Prediction Art
             </h1>
-            <p className="text-[10px] text-slate-400 font-semibold tracking-wide">서울시 버스 가상화 타임라인 및 도착 예측 시뮬레이터</p>
+            <p className="text-[9px] text-slate-500 font-bold tracking-wider">서울시 버스 가상화 타임라인 및 예술적 노선도 시뮬레이터</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-3">
           {/* Active Status Badge */}
-          <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-500/5 text-emerald-400 border border-emerald-500/15">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>예측 시뮬레이션 모드 활성화</span>
+          <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-emerald-500/5 text-emerald-400 border border-emerald-500/15">
+            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+            <span>예측 시뮬레이션 활성화</span>
           </div>
 
           {/* Backend Connection Badge */}
-          <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border ${
+          <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[9px] font-bold border ${
             dataSource === 'api' 
               ? 'bg-indigo-500/5 text-indigo-400 border-indigo-500/15' 
               : dataSource === 'local'
@@ -634,13 +1128,13 @@ export default function Home() {
           }`}>
             {dataSource === 'api' ? (
               <>
-                <Server className="h-3 w-3 text-indigo-400" />
-                <span>FastAPI 서버 연동됨</span>
+                <Server className="h-2.5 w-2.5 text-indigo-400" />
+                <span>FastAPI 연동</span>
               </>
             ) : dataSource === 'local' ? (
               <>
-                <Database className="h-3 w-3 text-amber-400" />
-                <span>로컬 단독 모드</span>
+                <Database className="h-2.5 w-2.5 text-amber-400" />
+                <span>로컬 모드</span>
               </>
             ) : (
               <span>연결 확인 중...</span>
@@ -649,85 +1143,128 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Interactive Canvas Area */}
+      <main className="flex-1 relative w-full mx-auto p-6 flex flex-col justify-center items-center">
         
-        {/* Left Column: Premium Control Sidebar (col-span-4) */}
-        <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6 self-start">
-          
-          {/* 1. Selected Station Info Card */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800/40">
-              <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-indigo-400" />
+        {/* Collapsible Floating Left Info Panel */}
+        <div className={`fixed top-24 left-6 z-40 w-80 transition-all duration-500 ease-in-out ${
+          isInfoPanelOpen ? 'translate-x-0 opacity-100' : '-translate-x-96 opacity-0 pointer-events-none'
+        }`}>
+          <div className="backdrop-blur-xl bg-slate-950/75 border border-slate-900/80 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-900">
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center space-x-1.5">
+                <MapPin className="h-3.5 w-3.5 text-indigo-400" />
                 <span>선택된 정류소 정보</span>
               </h2>
-              {selectedStation && (
-                <span className="text-[9px] bg-indigo-500/10 text-indigo-300 font-mono px-2 py-0.5 rounded border border-indigo-500/20 font-bold">
-                  ARS ID {selectedStation.arsId}
-                </span>
-              )}
+              <button 
+                onClick={() => setIsInfoPanelOpen(false)}
+                className="text-[9px] text-slate-500 hover:text-slate-300 font-bold uppercase tracking-wider control-btn"
+              >
+                접기
+              </button>
             </div>
 
-            {selectedStation ? (
-              <div className="space-y-5">
-                <div className="bg-gradient-to-r from-indigo-950/40 to-slate-900/50 border border-indigo-500/10 rounded-2xl p-4">
-                  <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider block mb-1">현재 활성화된 정류소</span>
-                  <h3 className="text-base font-extrabold text-slate-100 tracking-tight">{selectedStation.name}</h3>
-                  <div className="flex items-center space-x-3 mt-2 text-[10px] text-slate-500 font-mono font-medium">
-                    <span>위도: {selectedStation.lat.toFixed(4)}</span>
-                    <span className="text-slate-700">•</span>
-                    <span>경도: {selectedStation.lng.toFixed(4)}</span>
-                  </div>
-                </div>
+            <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-4 space-y-3">
+              <div>
+                <span className="text-[8px] text-indigo-400 font-black uppercase tracking-wider block mb-0.5">정류소명</span>
+                <h3 className="text-sm font-black text-slate-100 tracking-tight">{selectedStation.name}</h3>
+                <span className="text-[9px] text-slate-500 font-mono block mt-1">
+                  위도: {selectedStation.lat.toFixed(4)} • 경도: {selectedStation.lng.toFixed(4)}
+                </span>
+              </div>
 
-                <div className="space-y-2.5">
-                  <label className="text-[11px] font-bold text-slate-400 tracking-wide uppercase block">경유 버스 노선 ({selectedStation.routes.length}개)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedStation.routes.map(rId => {
-                      const r = ROUTE_DETAILS[rId] || { name: rId, type: "지선", color: "emerald", hex: "#10b981" };
-                      return (
-                        <div
-                          key={rId}
-                          className="px-3 py-2 rounded-xl bg-slate-950/50 border border-slate-900 flex items-center justify-between hover:border-slate-800 transition"
-                        >
-                          <span className="text-xs font-extrabold text-slate-200">{r.name}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold border shrink-0 ${
-                            r.type === '지선' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/15' :
-                            r.type === '광역' ? 'bg-rose-500/5 text-rose-400 border-rose-500/15' :
-                            r.type === '간선' ? 'bg-sky-500/5 text-sky-400 border-sky-500/15' :
-                            r.type === '순환' ? 'bg-amber-500/5 text-amber-400 border-amber-500/15' :
-                            'bg-indigo-500/5 text-indigo-400 border-indigo-500/15'
-                          }`}>
-                            {r.type}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+              <div className="space-y-1.5">
+                <span className="text-[8px] text-slate-400 font-black uppercase tracking-wider block">경유 노선 ({selectedStation.routes.length}개)</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {selectedStation.routes.map(rId => {
+                    const r = ROUTE_DETAILS[rId] || { name: rId, type: "지선", color: "emerald" };
+                    return (
+                      <div 
+                        key={rId} 
+                        className="px-2 py-1 rounded-lg bg-black/40 border border-slate-900 flex items-center justify-between"
+                      >
+                        <span className="text-[10px] font-black text-slate-200">{r.name}</span>
+                        <span className={`text-[8px] px-1 rounded font-black border ${
+                          r.type === '지선' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/15' :
+                          r.type === '광역' ? 'bg-rose-500/5 text-rose-400 border-rose-500/15' :
+                          r.type === '간선' ? 'bg-sky-500/5 text-sky-400 border-sky-500/15' :
+                          'bg-indigo-500/5 text-indigo-400 border-indigo-500/15'
+                        }`}>
+                          {r.type[0]}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-slate-600 text-xs">
-                <Info className="h-8 w-8 mx-auto mb-2 text-slate-700" />
-                <p className="font-semibold text-slate-400">선택된 정류소가 없습니다.</p>
-                <p className="text-slate-500 mt-1">지도에서 정류장을 클릭하세요.</p>
-              </div>
-            )}
+            </div>
+
+            {/* Guide Info */}
+            <div className="text-[9px] text-slate-500 space-y-1 leading-relaxed">
+              <p className="font-extrabold text-indigo-400 flex items-center space-x-1">
+                <Info className="h-3 w-3" />
+                <span>인터랙션 가이드</span>
+              </p>
+              <p>• <b>마우스 휠</b>을 굴려 줌 인/아웃을 조절할 수 있습니다.</p>
+              <p>• <b>줌 아웃(노선도)</b>: 노선도 상의 <b>원형 노드</b>를 클릭해 정류소를 선택하세요. 빈 공간을 클릭하면 <b>가상 정류소</b>가 생성됩니다.</p>
+              <p>• <b>줌 인(전광판)</b>: 노선별로 다가오는 버스들을 네온 전광판으로 확인하세요.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Panel Toggle Button when closed */}
+        {!isInfoPanelOpen && (
+          <button 
+            onClick={() => setIsInfoPanelOpen(true)}
+            className="fixed top-24 left-6 z-40 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900 text-[10px] font-black text-indigo-400 hover:text-indigo-300 shadow-xl flex items-center space-x-1.5 transition-all duration-300 control-btn"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span>정류소 정보 열기</span>
+          </button>
+        )}
+
+        {/* Main Art Canvas Container */}
+        <div 
+          id="art-canvas-container"
+          className="w-full max-w-5xl h-[600px] relative rounded-3xl border border-slate-900 bg-black overflow-hidden shadow-2xl"
+        >
+          {/* Zoom Out View (SVG Map) */}
+          <div className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+            zoomLevel > 1 ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
+          }`}>
+            {renderSvgMap()}
           </div>
 
-          {/* 2. Time Control Center Card */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800/40">
-              <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-purple-400" />
-                <span>시간 제어 및 예측 타임라인</span>
-              </h2>
-              
+          {/* Zoom In View (Multi-Track Dashboard) */}
+          <div className={`absolute inset-0 transition-all duration-700 ease-in-out overflow-y-auto p-6 ${
+            zoomLevel === 1 ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-105 pointer-events-none'
+          }`}>
+            {renderMultiTrackDashboard()}
+          </div>
+
+          {/* Canvas Overlay Instructions */}
+          <div className="absolute top-4 right-4 pointer-events-none text-[8px] font-black text-slate-600 tracking-widest uppercase flex items-center space-x-2">
+            <span>Scroll Wheel to Zoom</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+          </div>
+        </div>
+
+        {/* Floating Bottom Right Premium Control Bar */}
+        <div className="fixed bottom-6 right-6 z-40 w-full max-w-xs sm:max-w-sm">
+          <div className="backdrop-blur-xl bg-slate-950/75 border border-slate-900/80 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              {/* Cyber Clock */}
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-indigo-400 shrink-0" />
+                <span className="text-lg font-mono font-black text-transparent bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text select-none">
+                  {formatDisplayTime(targetTime)}
+                </span>
+              </div>
+
               {/* Play/Pause Button */}
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all border shadow ${
+                className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-[9px] font-black transition-all border shadow control-btn ${
                   isPlaying 
                     ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/5 animate-pulse' 
                     : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 shadow-indigo-500/5 hover:bg-indigo-500/15'
@@ -747,286 +1284,77 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Display Target Time (Cyber Clock Style) */}
-            <div className="bg-slate-950/60 rounded-2xl p-5 border border-slate-900/80 text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
-              <div className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest mb-1.5">예측 대상 시뮬레이션 시간</div>
-              <div className="text-3xl font-mono font-extrabold text-transparent bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text tracking-tight select-none">
-                {formatDisplayTime(targetTime)}
-              </div>
-              <div className="text-[10px] text-slate-400 mt-2 flex items-center justify-center space-x-1.5 font-medium">
-                <Calendar className="h-3 w-3 text-slate-500" />
-                <span>2026년 6월 15일 (월요일)</span>
-              </div>
-            </div>
-
             {/* Time Slider */}
-            <div className="space-y-2 mt-5">
-              <div className="flex justify-between text-[10px] text-slate-500 font-bold font-mono">
+            <div className="space-y-1">
+              <div className="flex justify-between text-[8px] text-slate-600 font-black font-mono">
                 <span>00:00</span>
-                <span className="text-indigo-400/80">12:00</span>
+                <span className="text-indigo-500/40">12:00</span>
                 <span>24:00</span>
               </div>
-              <div className="relative group">
-                <input
-                  type="range"
-                  min="0"
-                  max="1439"
-                  value={getMinutesOfDay(targetTime)}
-                  onChange={handleSliderChange}
-                  className="w-full h-2.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-slate-900 focus:outline-none"
-                />
-              </div>
+              <input
+                type="range"
+                min="0"
+                max="1439"
+                value={getMinutesOfDay(targetTime)}
+                onChange={handleSliderChange}
+                className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-slate-950 focus:outline-none control-btn"
+              />
             </div>
-          </div>
-        </aside>
 
-        {/* Right Column: Visual Dashboard Content (col-span-8) */}
-        <section className="lg:col-span-8 flex flex-col space-y-8">
-          
-          {/* Leaflet Map Card */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col h-[400px] transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <h2 className="text-sm font-extrabold text-slate-200 uppercase tracking-wider">
-                  서울 실시간 버스 정류장 지도
-                </h2>
+            {/* Zoom and Navigation Controls */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-900">
+              {/* Zoom toggle buttons */}
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setZoomLevel(prev => Math.min(5, prev + 1))}
+                  disabled={zoomLevel === 5}
+                  className={`p-1.5 rounded-lg border transition-all control-btn ${
+                    zoomLevel === 5 
+                      ? 'opacity-40 cursor-not-allowed text-slate-600 border-slate-950' 
+                      : 'bg-slate-900/40 text-slate-400 border-slate-900 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                  title="줌 아웃 (영역 확장)"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setZoomLevel(prev => Math.max(1, prev - 1))}
+                  disabled={zoomLevel === 1}
+                  className={`p-1.5 rounded-lg border transition-all control-btn ${
+                    zoomLevel === 1 
+                      ? 'opacity-40 cursor-not-allowed text-slate-600 border-slate-950' 
+                      : 'bg-slate-900/40 text-slate-400 border-slate-900 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                  title="줌 인 (영역 축소 / 전광판 진입)"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </button>
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider pl-1 font-mono">
+                  {zoomLevel === 1 ? "전광판 뷰" :
+                   zoomLevel === 2 ? "근접 노선도 (4개역)" :
+                   zoomLevel === 3 ? "일반 노선도 (7개역)" :
+                   zoomLevel === 4 ? "광역 노선도 (11개역)" :
+                   "전체 노선도 (모든역)"}
+                </span>
               </div>
+
+              {/* Move to User Location Button */}
               <button
                 onClick={handleMoveToUserLocation}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-[11px] font-extrabold border border-indigo-500/20 hover:border-indigo-500/30 transition flex items-center space-x-1.5 shadow shadow-indigo-600/5"
+                className="px-2.5 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-[9px] font-black border border-indigo-500/20 hover:border-indigo-500/30 transition flex items-center space-x-1 shadow shadow-indigo-600/5 control-btn"
               >
-                <MapPin className="h-3.5 w-3.5" />
-                <span>내 위치로 이동</span>
+                <MapPin className="h-3 w-3" />
+                <span>내 위치</span>
               </button>
             </div>
-            
-            <div className="flex-1 relative rounded-2xl overflow-hidden border border-slate-900/90 shadow-inner">
-              <div id="map" className="w-full h-full z-10" />
-              
-              <div className="absolute bottom-4 left-4 bg-slate-950/90 border border-slate-900 px-4 py-3 rounded-2xl z-20 pointer-events-none text-[10px] text-slate-300 max-w-xs shadow-xl backdrop-blur-md space-y-1">
-                <p className="font-extrabold text-indigo-400 flex items-center space-x-1 mb-1">
-                  <Info className="h-3 w-3 shrink-0" />
-                  <span>스마트 맵 사용 가이드</span>
-                </p>
-                <p>• 지도 상의 📍 마커를 클릭해 정류소를 즉시 선택하세요.</p>
-                <p>• 아무 위치나 클릭하면 즉시 새로운 <span className="text-indigo-300 font-bold">가상 정류소</span>가 생성되어 운행을 예측 시뮬레이션합니다.</p>
-              </div>
-            </div>
           </div>
-
-          {/* 3. Interactive Multi-Route Unified Timeline Track Card (단일 통합 고속도로 시각화) */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between min-h-[440px] transition-all duration-300">
-            <div>
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/40">
-                <h2 className="text-sm font-extrabold text-slate-200 flex items-center space-x-2">
-                  <span className="w-3.5 h-3.5 rounded bg-indigo-500 animate-pulse" />
-                  <span>실시간 버스 통합 타임라인 전광판 (단일 차선 고속도로)</span>
-                </h2>
-                {selectedStation && (
-                  <div className="text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full shadow">
-                    📍 {selectedStation.name}
-                  </div>
-                )}
-              </div>
-
-              {!selectedStation ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center text-slate-500">
-                  <Info className="h-12 w-12 mb-3 text-indigo-500/20 animate-bounce" />
-                  <p className="text-sm font-extrabold text-slate-300">정류장을 선택해주세요</p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed font-semibold">지도에서 정류장 마커를 선택하거나, 원하는 지도 영역을 클릭해 신규 정류소를 추가하세요.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  
-                  {/* 통합 타임라인 도로 가이드 핀 (Station Milestones above the Highway) */}
-                  <div className="relative h-10 select-none">
-                    {/* 이전 정류소 핀 (15분 전 / 좌측) */}
-                    <div className="absolute left-[8%] -translate-x-1/2 flex flex-col items-center">
-                      <span className="text-[10px] font-black text-slate-400">출발 / 이전 정류소</span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 mt-1" />
-                      <div className="w-px h-3 border-l border-dashed border-slate-800" />
-                    </div>
-
-                    {/* 중간 역 핀 (8분 전 / 중앙) */}
-                    <div className="absolute left-[50%] -translate-x-1/2 flex flex-col items-center">
-                      <span className="text-[10px] font-black text-indigo-400">돌곶이역 2번 출구</span>
-                      <div className="w-2 h-2 rounded-full bg-indigo-500/80 mt-1 shadow shadow-indigo-500/20" />
-                      <div className="w-px h-3 border-l border-dashed border-indigo-900/50" />
-                    </div>
-
-                    {/* 목적지 핀 (0분 전 / 우측) */}
-                    <div className="absolute right-[5%] translate-x-1/2 flex flex-col items-center">
-                      <span className="text-[10px] font-black text-emerald-400">{selectedStation.name} (도착지)</span>
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 animate-ping absolute bottom-[-10px]" />
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shadow shadow-emerald-500/20" />
-                      <div className="w-px h-3 border-l border-dashed border-emerald-900/50" />
-                    </div>
-                  </div>
-
-                  {/* Single Unified Grid Timeline Board (Single Highway Lane) */}
-                  {/* height-56, very thick dark asphalt feel, single lane */}
-                  <div className="relative border-y border-slate-800 rounded-3xl bg-[#090d16] overflow-hidden shadow-2xl h-44 flex items-center">
-                    
-                    {/* Center Lane dash line (고속도로 차선 느낌의 중앙 노란 점선 데코) */}
-                    <div className="absolute left-0 right-0 h-0.5 border-t-2 border-dashed border-amber-500/20 pointer-events-none z-0" />
-                    
-                    {/* Background Vertical Grid Lines - spanning from top to bottom */}
-                    <div className="absolute inset-0 pointer-events-none flex justify-between px-6 py-4 z-0">
-                      {/* LeftPercent mapped: 15m to 0m => 5% to 95% */}
-                      <div className="absolute left-[8%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[29%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[50%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      <div className="absolute left-[71%] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
-                      
-                      {/* Destination line glow */}
-                      <div className="absolute right-[5%] top-0 bottom-0 border-r-4 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)]" />
-                    </div>
-
-                    {/* Unified Single Lane Track */}
-                    <div className="flex-1 h-full relative pl-6 pr-6 z-10 flex items-center">
-                      {allActiveBuses.length === 0 ? (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
-                          <span className="text-[11px] text-slate-500 font-bold italic tracking-wide">이 시간대에 운행 중인 버스가 없습니다</span>
-                        </div>
-                      ) : (
-                        allActiveBuses.map(bus => {
-                          const leftPercent = bus.leftPercent;
-                          const isCrowded = bus.status === 'CROWDED';
-                          
-                          // Dynamic Shape, Size & Glow based on predicted arrival time (minutesLeft)
-                          let containerClass = "";
-                          let glowStyle = {};
-                          let textStyle = "text-[9px] font-bold";
-                          let labelStyle = "text-[8px] font-extrabold opacity-95";
-                          let busIconSize = "w-3 h-3";
-
-                          if (bus.minutesLeft >= 12) {
-                            // 1) Starting out (12-15m): Circle Shape, very compact, darkish glow
-                            containerClass = "w-11 h-11 rounded-full flex flex-col items-center justify-center border border-opacity-40 transition-all duration-1000 ease-in-out";
-                            glowStyle = {
-                              backgroundColor: bus.route.hex,
-                              boxShadow: `0 0 10px rgba(${bus.route.rgb}, 0.3)`,
-                              borderColor: `rgba(${bus.route.rgb}, 0.5)`
-                            };
-                            textStyle = "text-[10px] font-black tracking-tighter font-mono -mb-0.5";
-                            // only show route name in circle
-                          } else if (bus.minutesLeft >= 5 && bus.minutesLeft < 12) {
-                            // 2) Mid-way (5-11m): Medium Rounded Rectangle, elegant glow
-                            containerClass = "w-28 h-12 rounded-2xl flex flex-col items-center justify-center border border-opacity-50 transition-all duration-1000 ease-in-out";
-                            glowStyle = {
-                              backgroundColor: bus.route.hex,
-                              boxShadow: `0 0 16px rgba(${bus.route.rgb}, 0.5)`,
-                              borderColor: `rgba(${bus.route.rgb}, 0.7)`
-                            };
-                            textStyle = "text-[10px] font-black tracking-tight font-mono";
-                            labelStyle = "text-[8px] font-black opacity-90 mt-0.5 font-mono";
-                            busIconSize = "w-3.5 h-3.5";
-                          } else {
-                            // 3) Approaching / Arriving (0-4m): Extra long, super wide card with high-end neon glow!
-                            const extraLong = bus.minutesLeft <= 1;
-                            const cardWidth = extraLong ? "w-[15rem] sm:w-[210px]" : "w-44";
-                            const cardHeight = extraLong ? "h-16" : "h-14";
-                            const bgGradient = isCrowded 
-                              ? "bg-gradient-to-b from-rose-500 to-rose-600 border-rose-400" 
-                              : "";
-
-                            containerClass = `${cardWidth} ${cardHeight} rounded-3xl flex flex-col items-center justify-center border transition-all duration-1000 ease-in-out ${bgGradient}`;
-                            glowStyle = {
-                              backgroundColor: isCrowded ? undefined : bus.route.hex,
-                              boxShadow: `0 0 35px rgba(${isCrowded ? "239, 68, 68" : bus.route.rgb}, 0.9)`,
-                              borderColor: isCrowded ? undefined : `rgba(${bus.route.rgb}, 0.9)`,
-                              borderWidth: "2px"
-                            };
-                            textStyle = extraLong ? "text-sm sm:text-base font-black tracking-wider font-mono" : "text-xs font-black tracking-tight font-mono";
-                            labelStyle = extraLong ? "text-[10px] sm:text-[11px] font-black mt-0.5 font-mono" : "text-[9px] font-black mt-0.5 font-mono";
-                            busIconSize = extraLong ? "w-4.5 h-4.5" : "w-4 h-4";
-                          }
-
-                          return (
-                            <div
-                              key={bus.id}
-                              className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
-                              style={{ left: `${leftPercent}%`, top: '50%', zIndex: 30 - bus.minutesLeft }}
-                            >
-                              {/* Bus Node Card */}
-                              <div
-                                className={`${containerClass} text-white shadow-xl hover:scale-105 hover:brightness-110 cursor-pointer`}
-                                style={glowStyle}
-                              >
-                                {bus.minutesLeft >= 12 ? (
-                                  // Circle style interior (minimalist)
-                                  <div className="flex flex-col items-center justify-center">
-                                    <span className={textStyle}>{bus.route.name.replace("번", "")}</span>
-                                    <span className="text-[7px] font-extrabold opacity-90 font-mono tracking-tighter">{bus.minutesLeft}m</span>
-                                  </div>
-                                ) : (
-                                  // Rectangular / Wide style interior
-                                  <>
-                                    <div className="flex items-center space-x-1">
-                                      <BusIcon className={`${busIconSize} shrink-0`} />
-                                      <span className={textStyle}>{bus.route.name}</span>
-                                    </div>
-                                    <span className={`${labelStyle} whitespace-nowrap flex items-center space-x-1`}>
-                                      <span>{bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분 전`}</span>
-                                      {isCrowded && <span className="text-[7px] bg-white text-rose-600 px-0.5 py-0.1 rounded font-black animate-pulse">혼잡</span>}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              
-                              {/* Point indicator dot */}
-                              <div className={`w-1.5 h-1.5 rounded-full border mt-1.5 shadow-sm ${
-                                isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
-                              }`} />
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Legend Footer */}
-            <div className="border-t border-slate-900/60 pt-4 mt-6 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-4">
-              <div className="flex items-center space-x-2">
-                <Info className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span>모든 버스들이 <b>단일 고속도로 레인</b> 위에서 도착지가 가까워질수록 <b>도형이 길어지고 네온 글로우가 극적으로 활성화</b>됩니다.</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 shrink-0 text-[10px] font-bold">
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-                  <span className="text-slate-400">지선 (연두)</span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
-                  <span className="text-slate-400">광역 (빨강)</span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#0ea5e9]" />
-                  <span className="text-slate-400">간선 (하늘)</span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
-                  <span className="text-slate-400">순환 (노랑)</span>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#3730a3]" />
-                  <span className="text-slate-400">심야 (남색)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 text-center text-xs text-slate-500 font-medium space-y-1">
-        <p>© 2026 Interactive Bus Arrival Prediction Pro. All rights reserved.</p>
-        <p className="text-slate-600 font-semibold">High-fidelity dark control board for seamless route predictions.</p>
+      <footer className="border-t border-slate-900/60 bg-black py-6 text-center text-[10px] text-slate-600 font-bold space-y-1">
+        <p>© 2026 Interactive Bus Arrival Prediction Art. All rights reserved.</p>
+        <p className="text-slate-700">High-fidelity dark cyber-board for seamless route predictions.</p>
       </footer>
     </div>
   );
