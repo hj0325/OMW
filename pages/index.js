@@ -339,8 +339,8 @@ export default function Home() {
   };
 
   // Deterministic Multi-Route Simulation Engine
-  const getSimulatedBuses = () => {
-    if (!selectedStation) return {};
+  const getSimulatedBusesForStation = (station) => {
+    if (!station) return {};
     
     const minutesOfDay = getMinutesOfDay(targetTime);
     const isRushHour = (minutesOfDay >= 450 && minutesOfDay <= 570) || (minutesOfDay >= 1050 && minutesOfDay <= 1170); // 07:30-09:30, 17:30-19:30
@@ -348,7 +348,7 @@ export default function Home() {
     
     const results = {};
     
-    selectedStation.routes.forEach(routeId => {
+    station.routes.forEach(routeId => {
       const route = ROUTE_DETAILS[routeId];
       if (!route) return;
       
@@ -365,7 +365,7 @@ export default function Home() {
       
       // Seed offset based on routeId and station ID
       let seed = 0;
-      const seedStr = `${routeId}_${selectedStation.id}`;
+      const seedStr = `${routeId}_${station.id}`;
       for (let i = 0; i < seedStr.length; i++) {
         seed += seedStr.charCodeAt(i);
       }
@@ -399,7 +399,9 @@ export default function Home() {
           activeBuses.push({
             id: `${routeId}_BUS_${index}`,
             minutesLeft: Math.round(minutesLeft),
-            status
+            status,
+            routeId,
+            route
           });
         }
       });
@@ -411,7 +413,18 @@ export default function Home() {
     return results;
   };
 
-  const simulatedBuses = getSimulatedBuses();
+  const getActiveBusesForStation = (station) => {
+    if (!station) return [];
+    const simulated = getSimulatedBusesForStation(station);
+    const allBuses = [];
+    station.routes.forEach(routeId => {
+      const busesForRoute = simulated[routeId] || [];
+      busesForRoute.forEach(bus => {
+        allBuses.push(bus);
+      });
+    });
+    return allBuses.sort((a, b) => a.minutesLeft - b.minutesLeft);
+  };
 
   // Mouse wheel zoom handler
   useEffect(() => {
@@ -526,23 +539,24 @@ export default function Home() {
       let endX = 660;
       
       if (S <= 4) {
-        startX = 280;
-        endX = 720;
+        startX = 220;
+        endX = 780;
       } else if (S <= 7) {
-        startX = 180;
-        endX = 820;
+        startX = 140;
+        endX = 860;
       } else if (S <= 11) {
-        startX = 120;
-        endX = 880;
+        startX = 100;
+        endX = 900;
       } else {
-        startX = 80;
-        endX = 920;
+        startX = 60;
+        endX = 940;
       }
       
       return startX + index * ((endX - startX) / (S - 1 || 1));
     };
 
-    const getRouteY = (index) => 160 + index * (340 / (R - 1 || 1));
+    const getRouteY = (index) => 140 + index * (410 / (R - 1 || 1));
+    const lineStartX = zoomLevel === 5 ? 15 : 50;
 
     return (
       <svg 
@@ -658,19 +672,19 @@ export default function Home() {
           const filterId = `url(#neon-glow-${r.color})`;
 
           const lastStationX = getStationX(S - 1);
-          const curveStart = Math.min(940, lastStationX + 30 + (index * 6));
-          const curveEnd = Math.min(970, curveStart + 20);
+          const curveStart = Math.min(960, lastStationX + 25 + (index * 4));
+          const curveEnd = Math.min(985, curveStart + 15);
 
           let pathD = "";
           if (index < R / 3) {
             // Top routes curve upwards
-            pathD = `M 60,${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y - 40} L ${curveEnd},45`;
+            pathD = `M ${lineStartX},${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y - 40} L ${curveEnd},45`;
           } else if (index >= R / 3 && index < 2 * R / 3) {
             // Middle routes go straight
-            pathD = `M 60,${y} L 960,${y}`;
+            pathD = `M ${lineStartX},${y} L 980,${y}`;
           } else {
             // Bottom routes curve downwards
-            pathD = `M 60,${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y + 40} L ${curveEnd},555`;
+            pathD = `M ${lineStartX},${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y + 40} L ${curveEnd},555`;
           }
 
           return (
@@ -679,16 +693,16 @@ export default function Home() {
               <path 
                 d={pathD} 
                 stroke={r.hex} 
-                strokeWidth={5} 
+                strokeWidth={18} 
                 fill="none" 
-                opacity={0.4} 
+                opacity={0.35} 
                 filter={filterId} 
               />
               {/* Sharp Inner Line */}
               <path 
                 d={pathD} 
                 stroke={r.hex} 
-                strokeWidth={2.5} 
+                strokeWidth={8} 
                 fill="none" 
               />
             </g>
@@ -696,7 +710,7 @@ export default function Home() {
         })}
 
         {/* Route Labels on the Left Side */}
-        {activeRoutes.map((routeId, index) => {
+        {zoomLevel < 5 && activeRoutes.map((routeId, index) => {
           const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
           const y = getRouteY(index);
           return (
@@ -725,12 +739,12 @@ export default function Home() {
         })}
 
         {/* Route Labels at the curve ends (Vertical text) */}
-        {activeRoutes.map((routeId, index) => {
+        {zoomLevel < 5 && activeRoutes.map((routeId, index) => {
           const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
           const y = getRouteY(index);
           const lastStationX = getStationX(S - 1);
-          const curveStart = Math.min(940, lastStationX + 30 + (index * 6));
-          const curveEnd = Math.min(970, curveStart + 20);
+          const curveStart = Math.min(960, lastStationX + 25 + (index * 4));
+          const curveEnd = Math.min(985, curveStart + 15);
 
           if (index < R / 3) {
             // Top routes (Vertical text at the top)
@@ -823,7 +837,7 @@ export default function Home() {
                       <circle 
                         cx={x} 
                         cy={y} 
-                        r={16} 
+                        r={24} 
                         fill={r.hex} 
                         opacity={0.2} 
                         className="animate-ping" 
@@ -834,19 +848,19 @@ export default function Home() {
                     <circle 
                       cx={x} 
                       cy={y} 
-                      r={isSelectedStation ? 11 : 8.5} 
+                      r={isSelectedStation ? 15 : 11} 
                       fill={isSelectedStation ? r.hex : "#000000"} 
                       stroke={isSelectedStation ? "white" : r.hex} 
-                      strokeWidth={isSelectedStation ? 2 : 2.5} 
+                      strokeWidth={isSelectedStation ? 2.5 : 3} 
                       className="transition-all duration-300 group-hover:scale-125"
                     />
 
                     {/* Direction Arrow */}
                     <text 
                       x={x} 
-                      y={isSelectedStation ? y + 3.5 : y + 3} 
+                      y={isSelectedStation ? y + 4 : y + 3.5} 
                       className={`font-black text-center select-none ${
-                        isSelectedStation ? "text-[10px]" : "text-[8px]"
+                        isSelectedStation ? "text-[12px]" : "text-[9px]"
                       }`} 
                       fill={isSelectedStation ? "white" : r.hex} 
                       textAnchor="middle"
@@ -916,40 +930,55 @@ export default function Home() {
             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">실시간 전광판 뷰</span>
             <h2 className="text-xl font-black text-slate-100 tracking-tight flex items-center space-x-2">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
-              <span>{selectedStation.name} 도착 전광판</span>
+              <span>정류장별 실시간 도착 전광판 (근처 정류장 통합)</span>
             </h2>
           </div>
           <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-mono px-2.5 py-1 rounded-full border border-indigo-500/20 font-bold">
-            ARS ID {selectedStation.arsId || "가상"}
+            중앙 정류소: {selectedStation.name.replace(" 정류소", "")}
           </span>
         </div>
 
         <div className="space-y-6">
-          {selectedStation.routes.map(routeId => {
-            const r = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981", rgb: "16, 185, 129" };
-            const buses = simulatedBuses[routeId] || [];
+          {activeStations.map(st => {
+            const isSelected = st.id === selectedStationId;
+            const buses = getActiveBusesForStation(st);
 
             return (
               <div 
-                key={`track-${routeId}`} 
-                className="bg-slate-950/40 border border-slate-900/60 rounded-3xl p-5 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col md:flex-row items-stretch gap-4"
+                key={`track-${st.id}`} 
+                className={`bg-slate-950/40 border rounded-3xl p-5 backdrop-blur-xl shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col md:flex-row items-stretch gap-4 ${
+                  isSelected 
+                    ? 'border-indigo-500/40 bg-indigo-950/5 shadow-[0_0_20px_rgba(99,102,241,0.08)]' 
+                    : 'border-slate-900/60'
+                }`}
               >
-                {/* Route Badge Panel */}
-                <div className="md:w-36 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-2 border-b md:border-b-0 md:border-r border-slate-900 pb-3 md:pb-0 md:pr-4 shrink-0">
+                {/* Station Info Panel */}
+                <div className="md:w-48 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-2 border-b md:border-b-0 md:border-r border-slate-900 pb-3 md:pb-0 md:pr-4 shrink-0">
                   <div>
                     <span className={`text-[9px] px-2 py-0.5 rounded-full font-black border uppercase ${
-                      r.type === '지선' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/15' :
-                      r.type === '광역' ? 'bg-rose-500/5 text-rose-400 border-rose-500/15' :
-                      r.type === '간선' ? 'bg-sky-500/5 text-sky-400 border-sky-500/15' :
-                      r.type === '순환' ? 'bg-amber-500/5 text-amber-400 border-amber-500/15' :
-                      'bg-indigo-500/5 text-indigo-400 border-indigo-500/15'
+                      isSelected 
+                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30 animate-pulse' 
+                        : 'bg-slate-900 text-slate-500 border-slate-800'
                     }`}>
-                      {r.type}
+                      {isSelected ? '📍 선택된 정류소' : '인근 정류소'}
                     </span>
-                    <h3 className="text-lg font-black text-slate-100 tracking-tight mt-1.5">{r.name}</h3>
+                    <h3 className={`text-sm font-black tracking-tight mt-1.5 ${
+                      isSelected ? 'text-indigo-200' : 'text-slate-100'
+                    }`}>{st.name}</h3>
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono font-bold">
-                    배차 {r.interval}분
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {st.routes.map(rId => {
+                      const r = ROUTE_DETAILS[rId] || { color: "sky", hex: "#0ea5e9" };
+                      return (
+                        <span 
+                          key={rId} 
+                          className="text-[7px] px-1 py-0.2 rounded font-extrabold border"
+                          style={{ borderColor: `rgba(${r.rgb || "14, 165, 233"}, 0.2)`, color: r.hex, backgroundColor: `rgba(${r.rgb || "14, 165, 233"}, 0.05)` }}
+                        >
+                          {rId.replace("번", "")}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -959,11 +988,11 @@ export default function Home() {
                   <div className="absolute inset-x-0 top-1.5 px-6 flex justify-between pointer-events-none text-[8px] font-black text-slate-600 uppercase tracking-wider">
                     <span>이전 정류소</span>
                     <span className="text-indigo-900/40">돌곶이역 2번 출구</span>
-                    <span className="text-emerald-500/40">{selectedStation.name.replace(" 정류소", "")} (도착)</span>
+                    <span className="text-emerald-500/40">{st.name.replace(" 정류소", "")} (도착)</span>
                   </div>
 
                   {/* Center Dash Line */}
-                  <div className="absolute left-0 right-0 h-0.5 border-t border-dashed border-slate-900 pointer-events-none z-0" />
+                  <div className="absolute left-0 right-0 h-0.5 border-t border-dashed border-slate-900/40 pointer-events-none z-0" />
 
                   {/* Bus Cards Container */}
                   <div className="flex-1 h-full relative z-10 flex items-center">
@@ -974,6 +1003,7 @@ export default function Home() {
                     ) : (
                       buses.map(bus => {
                         const isCrowded = bus.status === 'CROWDED';
+                        const r = bus.route || { color: "sky", hex: "#0ea5e9", rgb: "14, 165, 233", name: bus.routeId };
                         
                         // Calculate left position (15m to 0m => 5% to 90%)
                         const leftPercent = 5 + ((15 - bus.minutesLeft) / 15) * 85;
@@ -1226,7 +1256,7 @@ export default function Home() {
         {/* Main Art Canvas Container */}
         <div 
           id="art-canvas-container"
-          className="w-full max-w-5xl h-[600px] relative rounded-3xl border border-slate-900 bg-black overflow-hidden shadow-2xl"
+          className="w-full max-w-7xl h-[650px] relative rounded-3xl border border-slate-900 bg-black overflow-hidden shadow-2xl"
         >
           {/* Zoom Out View (SVG Map) */}
           <div className={`absolute inset-0 transition-all duration-700 ease-in-out ${
