@@ -117,7 +117,7 @@ const formatDisplayTime = (date) => {
 };
 
 // Beautiful HTML/CSS & SVG Glowing Liquid Gradient Bus Card Background (High Performance Fallback)
-const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
+const WebGLBusCard = ({ hex, highlightHex, rgb, isDot }) => {
   // Boost base and highlight colors to saturate them for a much punchier neon look
   const getSaturatedColor = (colorHex) => {
     // Basic color mapping for boosted neon punch
@@ -133,18 +133,19 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
 
   const saturatedHex = getSaturatedColor(hex);
   const saturatedHighlight = getSaturatedColor(highlightHex);
+  const roundedClass = isDot ? "rounded-full" : "rounded-2xl";
 
   return (
     <div 
-      className="absolute inset-0 rounded-2xl overflow-hidden z-0"
+      className={`absolute inset-0 ${roundedClass} overflow-hidden z-0`}
       style={{
-        background: `linear-gradient(135deg, ${saturatedHex}, ${saturatedHex}dd)`,
+        background: `linear-gradient(135deg, rgba(${rgb}, 0.95), rgba(${rgb}, 0.55))`,
         animation: 'transition-vibe-glow 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards'
       }}
     >
       {/* Animated Liquid Flow Effect (Pure CSS/SVG - incredibly smooth & robust) */}
       <div 
-        className="absolute inset-0 opacity-50 mix-blend-overlay animate-pulse"
+        className={`absolute inset-0 ${roundedClass} opacity-40 mix-blend-overlay animate-pulse`}
         style={{
           background: `radial-gradient(circle at 30% 30%, ${saturatedHighlight}, transparent 60%),
                        radial-gradient(circle at 70% 70%, ${saturatedHighlight}, transparent 60%)`,
@@ -155,18 +156,18 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
       />
       {/* Subtle shining light beam sweep */}
       <div 
-        className="absolute inset-y-0 w-1/3 -skew-x-12 opacity-25 pointer-events-none"
+        className="absolute inset-y-0 w-1/3 -skew-x-12 opacity-20 pointer-events-none"
         style={{
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
           animation: 'shining-beam 4s infinite ease-in-out'
         }}
       />
       
       {/* Soft dynamic inner glowing pulse edge - narrower glow margin */}
       <div 
-        className="absolute inset-0 rounded-2xl pointer-events-none"
+        className={`absolute inset-0 ${roundedClass} pointer-events-none`}
         style={{
-          boxShadow: `inset 0 0 10px ${saturatedHighlight}`,
+          boxShadow: `inset 0 0 12px rgba(${rgb}, 0.85)`,
           animation: 'inner-glow-pulse 3s infinite ease-in-out',
           mixBlendMode: 'screen',
           opacity: 0.95,
@@ -175,7 +176,7 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
       />
       
       {/* Glow highlight border - subtle borders */}
-      <div className="absolute inset-0 border border-white/10 rounded-2xl" />
+      <div className={`absolute inset-0 border border-white/20 ${roundedClass}`} />
 
       <style jsx global>{`
         @keyframes shining-beam {
@@ -185,34 +186,32 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
         }
         @keyframes inner-glow-pulse {
           0% {
-            box-shadow: inset 0 0 6px var(--glow-color, rgba(255,255,255,0.4)),
-                        inset 0 0 12px var(--glow-fallback, ${saturatedHighlight}dd);
+            box-shadow: inset 0 0 6px rgba(255,255,255,0.35),
+                        inset 0 0 12px rgba(${rgb}, 0.75);
             opacity: 0.75;
           }
           50% {
-            box-shadow: inset 0 0 12px var(--glow-color, rgba(255,255,255,0.7)),
-                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight});
+            box-shadow: inset 0 0 12px rgba(255,255,255,0.6),
+                        inset 0 0 20px rgba(${rgb}, 0.95);
             opacity: 1.0;
           }
           100% {
-            box-shadow: inset 0 0 6px var(--glow-color, rgba(255,255,255,0.4)),
-                        inset 0 0 12px var(--glow-fallback, ${saturatedHighlight}dd);
+            box-shadow: inset 0 0 6px rgba(255,255,255,0.35),
+                        inset 0 0 12px rgba(${rgb}, 0.75);
             opacity: 0.75;
           }
         }
         @keyframes transition-vibe-glow {
           0% {
-            filter: saturate(2.5) brightness(1.6) contrast(1.2);
-            box-shadow: 0 0 20px ${saturatedHighlight}55, inset 0 0 16px ${saturatedHighlight};
-            transform: scale(1.05);
+            filter: saturate(2.2) brightness(1.4) contrast(1.1);
+            transform: scale(1.04);
           }
           20% {
-            filter: saturate(2.0) brightness(1.3) contrast(1.1);
-            transform: scale(1.02);
+            filter: saturate(1.8) brightness(1.2) contrast(1.05);
+            transform: scale(1.01);
           }
           100% {
             filter: saturate(1) brightness(1) contrast(1);
-            box-shadow: 0 0 12px ${saturatedHighlight}33, inset 0 0 10px ${saturatedHighlight}77;
             transform: scale(1);
           }
         }
@@ -240,11 +239,25 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState(null);
   const [targetTime, setTargetTime] = useState(new Date("2026-06-15T14:19:00Z")); // Matches screenshot time
   const [dataSource, setDataSource] = useState("checking"); // 'api' | 'local'
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(3); // 1: 전광판, 2: 4개역, 3: 7개역, 4: 11개역, 5: 모든역
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
+  const [containerWidth, setContainerWidth] = useState(1200);
 
   const playIntervalRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      const el = document.getElementById('art-canvas-container');
+      if (el) {
+        setContainerWidth(el.getBoundingClientRect().width);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const selectedStation = stations.find(s => s.id === selectedStationId) || stations[0];
 
@@ -671,20 +684,20 @@ export default function Home() {
     // Dynamic Station X spacing based on total active stations to prevent overlapping
     const getStationX = (index) => {
       let startX = 180;
-      let endX = 660;
+      let endX = 800;
       
       if (S <= 4) {
         startX = 220;
-        endX = 780;
+        endX = 860;
       } else if (S <= 7) {
         startX = 140;
-        endX = 860;
+        endX = 940;
       } else if (S <= 11) {
         startX = 100;
-        endX = 900;
+        endX = 980;
       } else {
         startX = 60;
-        endX = 940;
+        endX = 1020;
       }
       
       return startX + index * ((endX - startX) / (S - 1 || 1));
@@ -696,7 +709,7 @@ export default function Home() {
     return (
       <svg 
         className="w-full h-full select-none bg-black" 
-        viewBox="0 0 1000 600"
+        viewBox="0 0 1200 600"
       >
         {/* Definitions for Glow Filters and Gradients */}
         <defs>
@@ -745,11 +758,11 @@ export default function Home() {
 
         {/* Cyber Grid Background */}
         <g stroke="rgba(255, 255, 255, 0.015)" strokeWidth="1">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 25 }).map((_, i) => (
             <line key={`v-${i}`} x1={i * 50} y1={0} x2={i * 50} y2={600} />
           ))}
           {Array.from({ length: 12 }).map((_, i) => (
-            <line key={`h-${i}`} x1={0} y1={i * 50} x2={1000} y2={i * 50} />
+            <line key={`h-${i}`} x1={0} y1={i * 50} x2={1200} y2={i * 50} />
           ))}
         </g>
 
@@ -800,27 +813,13 @@ export default function Home() {
           );
         })}
 
-        {/* Glowing Bus Route Lines (Cascade curves on the right) */}
+        {/* Glowing Bus Route Lines (Completely parallel, professional transit map style) */}
         {activeRoutes.map((routeId, index) => {
           const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
           const y = getRouteY(index);
           const filterId = `url(#neon-glow-${r.color})`;
-
-          const lastStationX = getStationX(S - 1);
-          const curveStart = Math.min(960, lastStationX + 25 + (index * 4));
-          const curveEnd = Math.min(985, curveStart + 15);
-
-          let pathD = "";
-          if (index < R / 3) {
-            // Top routes curve upwards
-            pathD = `M ${lineStartX},${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y - 40} L ${curveEnd},45`;
-          } else if (index >= R / 3 && index < 2 * R / 3) {
-            // Middle routes go straight
-            pathD = `M ${lineStartX},${y} L 980,${y}`;
-          } else {
-            // Bottom routes curve downwards
-            pathD = `M ${lineStartX},${y} L ${curveStart},${y} Q ${curveEnd},${y} ${curveEnd},${y + 40} L ${curveEnd},555`;
-          }
+          const lineEndX = 1120;
+          const pathD = `M ${lineStartX},${y} L ${lineEndX},${y}`;
 
           return (
             <g key={`route-line-${routeId}`}>
@@ -839,6 +838,15 @@ export default function Home() {
                 stroke={r.hex} 
                 strokeWidth={8} 
                 fill="none" 
+              />
+              {/* Terminal Station Node */}
+              <circle
+                cx={lineEndX}
+                cy={y}
+                r={6}
+                fill="white"
+                stroke={r.hex}
+                strokeWidth={3}
               />
             </g>
           );
@@ -873,62 +881,33 @@ export default function Home() {
           );
         })}
 
-        {/* Route Labels at the curve ends (Vertical text) */}
+        {/* Route Labels on the Right Side (Symmetrical, clean, no overlapping) */}
         {zoomLevel < 5 && activeRoutes.map((routeId, index) => {
           const r = ROUTE_DETAILS[routeId] || { color: "sky", hex: "#0ea5e9" };
           const y = getRouteY(index);
-          const lastStationX = getStationX(S - 1);
-          const curveStart = Math.min(960, lastStationX + 25 + (index * 4));
-          const curveEnd = Math.min(985, curveStart + 15);
-
-          if (index < R / 3) {
-            // Top routes (Vertical text at the top)
-            return (
+          return (
+            <g key={`label-right-${routeId}`}>
+              <rect 
+                x={1130} 
+                y={y - 10} 
+                width={50} 
+                height={20} 
+                rx={6} 
+                fill="rgba(0, 0, 0, 0.85)" 
+                stroke={r.hex} 
+                strokeWidth={1.5} 
+              />
               <text 
-                key={`label-end-${routeId}`}
-                x={curveEnd} 
-                y={30} 
-                transform={`rotate(-90, ${curveEnd}, 30)`} 
-                className="text-[8px] font-extrabold font-mono" 
-                fill={r.hex} 
-                textAnchor="end"
-                opacity={0.8}
+                x={1155} 
+                y={y + 4} 
+                className="text-[10px] font-black font-mono tracking-tight" 
+                fill="white" 
+                textAnchor="middle"
               >
-                {routeId}
+                {routeId.replace("번", "")}
               </text>
-            );
-          } else if (index >= 2 * R / 3) {
-            // Bottom routes (Vertical text at the bottom)
-            return (
-              <text 
-                key={`label-end-${routeId}`}
-                x={curveEnd} 
-                y={570} 
-                transform={`rotate(-90, ${curveEnd}, 570)`} 
-                className="text-[8px] font-extrabold font-mono" 
-                fill={r.hex} 
-                textAnchor="start"
-                opacity={0.8}
-              >
-                {routeId}
-              </text>
-            );
-          } else {
-            // Straight middle routes (Horizontal text at the right edge)
-            return (
-              <text 
-                key={`label-end-${routeId}`}
-                x={Math.min(980, curveEnd + 10)} 
-                y={y + 3} 
-                className="text-[8px] font-extrabold font-mono" 
-                fill={r.hex} 
-                textAnchor="start"
-                opacity={0.8}
-              >
-                {routeId}
-              </text>
-            );
-          }
+            </g>
+          );
         })}
 
         {/* Station Nodes (Intersections) */}
@@ -1066,21 +1045,23 @@ export default function Home() {
             const rawBuses = getActiveBusesForStation(st).slice(0, 8);
 
             // Calculate adjusted non-overlapping positions
+            const trackWidth = Math.max(600, containerWidth - 96);
+            const isSmallScreen = containerWidth < 640;
             const adjustedBuses = [];
             rawBuses.forEach((bus, index) => {
               const leftPercent = 6 + ((15 - bus.minutesLeft) / 15) * 84; // 6% ~ 90%
               
-              // Determine approximate width percent of the card
-              let widthPercent = 6;
+              // Determine dynamic width percent of the card
+              let cardWidthPx = 48;
               if (bus.minutesLeft <= 1) {
-                widthPercent = 35; // Hero card: w-72 sm:w-[420px] -> ~35%
+                cardWidthPx = isSmallScreen ? 288 : 420;
               } else if (bus.minutesLeft < 5) {
-                widthPercent = 22; // Rect card: w-52 sm:w-60 -> ~22%
+                cardWidthPx = isSmallScreen ? 208 : 240;
               } else if (bus.minutesLeft < 11) {
-                widthPercent = 8;  // Square card: w-16 -> ~8%
-              } else {
-                widthPercent = 6;  // Dot card: w-12 -> ~6%
+                cardWidthPx = 64;
               }
+              
+              const widthPercent = (cardWidthPx / trackWidth) * 100;
               
               let adjustedLeft = leftPercent;
               
@@ -1088,7 +1069,8 @@ export default function Home() {
                 const prevBus = adjustedBuses[index - 1];
                 // The previous bus is further to the right (larger adjustedLeftPercent)
                 // The minimum distance between their centers is (widthPercent_prev + widthPercent_curr) / 2 + gap
-                const minDistance = (prevBus.widthPercent + widthPercent) / 2 + 1.5; // 1.5% extra gap
+                const gapPercent = (20 / trackWidth) * 100; // 20px dynamic gap
+                const minDistance = (prevBus.widthPercent + widthPercent) / 2 + gapPercent;
                 
                 // If the current bus is too close to the previous bus, push it to the left
                 if (adjustedLeft > prevBus.adjustedLeftPercent - minDistance) {
@@ -1276,11 +1258,17 @@ export default function Home() {
                               className="absolute transition-all duration-1000 ease-in-out"
                               style={posStyle}
                             >
-                              <div className={`${cardClass} relative overflow-visible transition-all duration-1000 ease-in-out`}>
+                              <div 
+                                className={`${cardClass} relative overflow-visible transition-all duration-1000 ease-in-out`}
+                                style={{
+                                  boxShadow: `0 0 25px -2px rgba(${r.rgb}, 0.55), 0 0 12px -4px rgba(${r.rgb}, 0.35)`,
+                                }}
+                              >
                                 <WebGLBusCard 
                                   key={`${bus.id}-${currentTypeKey}`}
                                   hex={r.hex}
                                   highlightHex={highlightHex}
+                                  rgb={r.rgb}
                                   isDot={isDot}
                                 />
                                 <div className="absolute inset-0 z-10 flex items-center justify-center w-full h-full pointer-events-none">
@@ -1308,57 +1296,41 @@ export default function Home() {
         <title>Bus Arrival Prediction Art</title>
       </Head>
 
-      {/* Futuristic Header */}
-      <header className="border-b border-slate-900/60 bg-black/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
-            <Navigation className="h-4.5 w-4.5" />
-          </div>
-          <div>
-            <h1 className="text-md font-black tracking-tight bg-gradient-to-r from-indigo-300 via-purple-400 to-pink-300 bg-clip-text text-transparent">
-              Bus Arrival Prediction Art
-            </h1>
-            <p className="text-[9px] text-slate-500 font-bold tracking-wider">서울시 버스 가상화 타임라인 및 예술적 노선도 시뮬레이터</p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          {/* Active Status Badge */}
-          <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-emerald-500/5 text-emerald-400 border border-emerald-500/15">
-            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-            <span>예측 시뮬레이션 활성화</span>
-          </div>
-
-          {/* Backend Connection Badge */}
-          <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[9px] font-bold border ${
-            dataSource === 'api' 
-              ? 'bg-indigo-500/5 text-indigo-400 border-indigo-500/15' 
-              : dataSource === 'local'
-              ? 'bg-amber-500/5 text-amber-400 border-amber-500/15'
-              : 'bg-slate-900 text-slate-500 border-slate-800'
-          }`}>
-            {dataSource === 'api' ? (
-              <>
-                <Server className="h-2.5 w-2.5 text-indigo-400" />
-                <span>FastAPI 연동</span>
-              </>
-            ) : dataSource === 'local' ? (
-              <>
-                <Database className="h-2.5 w-2.5 text-amber-400" />
-                <span>로컬 모드</span>
-              </>
-            ) : (
-              <span>연결 확인 중...</span>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Main Interactive Canvas Area */}
-      <main className="flex-1 relative w-full mx-auto p-6 flex flex-col justify-center items-center">
+      <main className="flex-1 relative w-full mx-auto p-6 pt-28 flex flex-col justify-center items-center">
         
+        {/* Floating Top Center Control Bar */}
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs sm:max-w-md px-4 sm:px-0">
+          <div className="backdrop-blur-xl bg-slate-950/75 border border-slate-900/80 rounded-2xl p-4 shadow-2xl space-y-2">
+            {/* Cyber Clock */}
+            <div className="flex items-center justify-center space-x-2">
+              <Clock className="h-4 w-4 text-indigo-400 shrink-0" />
+              <span className="text-lg font-mono font-black text-transparent bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text select-none">
+                {formatDisplayTime(targetTime)}
+              </span>
+            </div>
+
+            {/* Time Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[8px] text-slate-600 font-black font-mono">
+                <span>00:00</span>
+                <span className="text-indigo-500/40">12:00</span>
+                <span>24:00</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1439"
+                value={getMinutesOfDay(targetTime)}
+                onChange={handleSliderChange}
+                className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-slate-950 focus:outline-none control-btn"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Collapsible Floating Left Info Panel */}
-        <div className={`fixed top-24 left-6 z-40 w-80 transition-all duration-500 ease-in-out ${
+        <div className={`fixed top-6 left-6 z-40 w-80 transition-all duration-500 ease-in-out ${
           isInfoPanelOpen ? 'translate-x-0 opacity-100' : '-translate-x-96 opacity-0 pointer-events-none'
         }`}>
           <div className="backdrop-blur-xl bg-slate-950/75 border border-slate-900/80 rounded-3xl p-5 shadow-2xl space-y-4">
@@ -1427,7 +1399,7 @@ export default function Home() {
         {!isInfoPanelOpen && (
           <button 
             onClick={() => setIsInfoPanelOpen(true)}
-            className="fixed top-24 left-6 z-40 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900 text-[10px] font-black text-indigo-400 hover:text-indigo-300 shadow-xl flex items-center space-x-1.5 transition-all duration-300 control-btn"
+            className="fixed top-6 left-6 z-40 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900 text-[10px] font-black text-indigo-400 hover:text-indigo-300 shadow-xl flex items-center space-x-1.5 transition-all duration-300 control-btn"
           >
             <Eye className="h-3.5 w-3.5" />
             <span>정류소 정보 열기</span>
@@ -1437,7 +1409,7 @@ export default function Home() {
         {/* Main Art Canvas Container */}
         <div 
           id="art-canvas-container"
-          className="w-full max-w-7xl h-[650px] relative rounded-3xl border border-slate-900 bg-black overflow-hidden shadow-2xl"
+          className="w-full max-w-[1550px] h-[780px] relative rounded-3xl border border-slate-900 bg-black overflow-hidden shadow-2xl"
         >
           {/* Zoom Out View (SVG Map) */}
           <div className={`absolute inset-0 transition-all duration-700 ease-in-out ${
@@ -1460,113 +1432,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Floating Bottom Right Premium Control Bar */}
-        <div className="fixed bottom-6 right-6 z-40 w-full max-w-xs sm:max-w-sm">
-          <div className="backdrop-blur-xl bg-slate-950/75 border border-slate-900/80 rounded-3xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              {/* Cyber Clock */}
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span className="text-lg font-mono font-black text-transparent bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text select-none">
-                  {formatDisplayTime(targetTime)}
-                </span>
-              </div>
-
-              {/* Play/Pause Button */}
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-[9px] font-black transition-all border shadow control-btn ${
-                  isPlaying 
-                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/5 animate-pulse' 
-                    : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 shadow-indigo-500/5 hover:bg-indigo-500/15'
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-3 w-3 fill-current" />
-                    <span>정지</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-3 w-3 fill-current" />
-                    <span>재생</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Time Slider */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[8px] text-slate-600 font-black font-mono">
-                <span>00:00</span>
-                <span className="text-indigo-500/40">12:00</span>
-                <span>24:00</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1439"
-                value={getMinutesOfDay(targetTime)}
-                onChange={handleSliderChange}
-                className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500 border border-slate-950 focus:outline-none control-btn"
-              />
-            </div>
-
-            {/* Zoom and Navigation Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-900">
-              {/* Zoom toggle buttons */}
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => setZoomLevel(prev => Math.min(5, prev + 1))}
-                  disabled={zoomLevel === 5}
-                  className={`p-1.5 rounded-lg border transition-all control-btn ${
-                    zoomLevel === 5 
-                      ? 'opacity-40 cursor-not-allowed text-slate-600 border-slate-950' 
-                      : 'bg-slate-900/40 text-slate-400 border-slate-900 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                  title="줌 아웃 (영역 확장)"
-                >
-                  <ZoomOut className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setZoomLevel(prev => Math.max(1, prev - 1))}
-                  disabled={zoomLevel === 1}
-                  className={`p-1.5 rounded-lg border transition-all control-btn ${
-                    zoomLevel === 1 
-                      ? 'opacity-40 cursor-not-allowed text-slate-600 border-slate-950' 
-                      : 'bg-slate-900/40 text-slate-400 border-slate-900 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                  title="줌 인 (영역 축소 / 전광판 진입)"
-                >
-                  <ZoomIn className="h-3.5 w-3.5" />
-                </button>
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider pl-1 font-mono">
-                  {zoomLevel === 1 ? "전광판 뷰" :
-                   zoomLevel === 2 ? "근접 노선도 (4개역)" :
-                   zoomLevel === 3 ? "일반 노선도 (7개역)" :
-                   zoomLevel === 4 ? "광역 노선도 (11개역)" :
-                   "전체 노선도 (모든역)"}
-                </span>
-              </div>
-
-              {/* Move to User Location Button */}
-              <button
-                onClick={handleMoveToUserLocation}
-                className="px-2.5 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-[9px] font-black border border-indigo-500/20 hover:border-indigo-500/30 transition flex items-center space-x-1 shadow shadow-indigo-600/5 control-btn"
-              >
-                <MapPin className="h-3 w-3" />
-                <span>내 위치</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900/60 bg-black py-6 text-center text-[10px] text-slate-600 font-bold space-y-1">
-        <p>© 2026 Interactive Bus Arrival Prediction Art. All rights reserved.</p>
-        <p className="text-slate-700">High-fidelity dark cyber-board for seamless route predictions.</p>
-      </footer>
     </div>
   );
 }
