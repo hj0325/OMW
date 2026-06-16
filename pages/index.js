@@ -113,7 +113,7 @@ const NEIGHBORHOODS = [
 ];
 
 const formatDisplayTime = (date) => {
-  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' });
 };
 
 // Beautiful front-facing bus icon
@@ -490,11 +490,11 @@ export default function Home() {
     return cleanName;
   };
 
-  // Helper to get closest stations centered around the user location or selected station depending on zoom level
+  // Helper to get closest stations centered around the selected station depending on zoom level
   const getActiveStations = () => {
-    // Center around userLocation if available, otherwise selectedStation
-    const centerLat = userLocation ? userLocation[0] : selectedStation.lat;
-    const centerLng = userLocation ? userLocation[1] : selectedStation.lng;
+    // Center around selectedStation to allow dynamic exploration of different map areas
+    const centerLat = selectedStation.lat;
+    const centerLng = selectedStation.lng;
     
     const stationsWithDistance = stations.map(st => {
       const dist = Math.sqrt(
