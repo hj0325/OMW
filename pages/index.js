@@ -6,13 +6,8 @@ import {
   Navigation, 
   Play, 
   Pause, 
-  RefreshCw, 
-  AlertTriangle, 
-  CheckCircle, 
   Info, 
   Calendar, 
-  ArrowRight, 
-  TrendingUp, 
   Database, 
   Server
 } from 'lucide-react';
@@ -137,12 +132,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [dataSource, setDataSource] = useState("checking"); // 'api' | 'local'
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // Destination Finder States
-  const [destStationId, setDestStationId] = useState("ST_DOLGOTI");
-  const [destHour, setDestHour] = useState("14");
-  const [destMinute, setDestMins] = useState("30");
-  const [finderResult, setFinderResult] = useState(null);
 
   const mapRef = useRef(null);
   const markersRef = useRef({});
@@ -439,13 +428,6 @@ export default function Home() {
     };
   }, [isPlaying]);
 
-  // Presets
-  const setPresetTime = (hour, minute) => {
-    const newTime = new Date(targetTime);
-    newTime.setUTCHours(hour, minute, 0, 0);
-    setTargetTime(newTime);
-  };
-
   // Slider change (minutes of the day)
   const handleSliderChange = (e) => {
     const minutes = parseInt(e.target.value);
@@ -535,125 +517,16 @@ export default function Home() {
 
   const simulatedBuses = getSimulatedBuses();
 
-  // Destination Finder Logic
-  const handleFindRoute = () => {
-    if (!selectedStation) {
-      setFinderResult({ error: "출발지 정류장을 먼저 선택해주세요." });
-      return;
-    }
-    
-    const destStation = stations.find(s => s.id === destStationId);
-    if (!destStation) {
-      setFinderResult({ error: "목적지 정류장을 찾을 수 없습니다." });
-      return;
-    }
-    
-    if (selectedStation.id === destStationId) {
-      setFinderResult({ error: "출발지와 목적지가 같습니다." });
-      return;
-    }
-    
-    // Find common routes
-    const commonRoutes = selectedStation.routes.filter(r => destStation.routes.includes(r));
-    if (commonRoutes.length === 0) {
-      setFinderResult({ error: "두 정류장을 동시에 경유하는 직통 노선이 없습니다." });
-      return;
-    }
-    
-    // Target arrival time in minutes of the day
-    const targetArrivalMins = parseInt(destHour) * 60 + parseInt(destMinute);
-    
-    let bestRouteId = null;
-    let bestBoardTimeMins = null;
-    let bestArrivalTimeMins = null;
-    
-    commonRoutes.forEach(routeId => {
-      const route = ROUTE_DETAILS[routeId];
-      if (!route) return;
-      
-      // Deterministic scheduled arrivals at destination station
-      let destSeed = 0;
-      const destSeedStr = `${routeId}_${destStation.id}`;
-      for (let i = 0; i < destSeedStr.length; i++) {
-        destSeed += destSeedStr.charCodeAt(i);
-      }
-      const destOffset = destSeed % route.interval;
-      
-      let bestArrival = null;
-      let minDiff = Infinity;
-      
-      for (let currentArrival = destOffset; currentArrival < 1440; currentArrival += route.interval) {
-        const diff = targetArrivalMins - currentArrival;
-        if (diff >= 0 && diff < minDiff) {
-          minDiff = diff;
-          bestArrival = currentArrival;
-        }
-      }
-      
-      if (bestArrival !== null) {
-        // Travel time based on coordinate distance
-        const latDiff = destStation.lat - selectedStation.lat;
-        const lngDiff = destStation.lng - selectedStation.lng;
-        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-        const travelTimeMins = Math.max(3, Math.round(distance * 120)); // approx 120 mins per degree, min 3 mins
-        
-        const boardTimeMins = bestArrival - travelTimeMins;
-        
-        if (boardTimeMins >= 0) {
-          if (bestArrivalTimeMins === null || bestArrival > bestArrivalTimeMins) {
-            bestRouteId = routeId;
-            bestBoardTimeMins = boardTimeMins;
-            bestArrivalTimeMins = bestArrival;
-          }
-        }
-      }
-    });
-    
-    if (bestRouteId) {
-      const route = ROUTE_DETAILS[bestRouteId];
-      
-      const boardTime = new Date(targetTime);
-      boardTime.setUTCHours(Math.floor(bestBoardTimeMins / 60), bestBoardTimeMins % 60, 0, 0);
-      
-      const arrivalTime = new Date(targetTime);
-      arrivalTime.setUTCHours(Math.floor(bestArrivalTimeMins / 60), bestArrivalTimeMins % 60, 0, 0);
-      
-      setFinderResult({
-        bus: {
-          busId: `${route.type === '지선' ? 'G' : route.type === '간선' ? 'B' : route.type === '광역' ? 'R' : route.type === '순환' ? 'Y' : 'N'}${String(bestBoardTimeMins).padStart(4, '0')}`,
-          busName: route.name,
-          status: (bestBoardTimeMins >= 1080 && bestBoardTimeMins < 1200) ? "CROWDED" : "NORMAL"
-        },
-        boardStation: selectedStation,
-        destStation,
-        boardTime,
-        arrivalTime,
-        durationMins: bestArrivalTimeMins - bestBoardTimeMins
-      });
-      
-      // Automatically focus the timeline/time on the board time
-      setTargetTime(boardTime);
-      
-      // Smooth fly map to show both stations
-      if (mapRef.current && window.L) {
-        const bounds = window.L.latLngBounds([selectedStation.lat, selectedStation.lng], [destStation.lat, destStation.lng]);
-        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
-      }
-    } else {
-      setFinderResult({ error: "해당 시간대에 적절한 버스 운행 일정이 없습니다." });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
       <Head>
-        <title>Bus Arrival Prediction Prototype</title>
+        <title>Bus Arrival Prediction Pro</title>
         {/* Leaflet CSS from CDN */}
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
       </Head>
 
       {/* Header */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-slate-900 bg-slate-950/85 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/20">
             <Navigation className="h-5 w-5" />
@@ -699,10 +572,9 @@ export default function Home() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7.5xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Left Column: Premium Control Sidebar (col-span-4) */}
-        {/* Uses lg:sticky to stay floating in view on scroll! */}
         <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6 self-start">
           
           {/* 1. Selected Station Info Card */}
@@ -798,7 +670,7 @@ export default function Home() {
             </div>
 
             {/* Display Target Time (Cyber Clock Style) */}
-            <div className="bg-slate-950/60 rounded-2xl p-5 border border-slate-900/80 mb-5 text-center relative overflow-hidden">
+            <div className="bg-slate-950/60 rounded-2xl p-5 border border-slate-900/80 text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
               <div className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest mb-1.5">예측 대상 시뮬레이션 시간</div>
               <div className="text-3xl font-mono font-extrabold text-transparent bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text tracking-tight select-none">
@@ -811,7 +683,7 @@ export default function Home() {
             </div>
 
             {/* Time Slider */}
-            <div className="space-y-2 mb-6">
+            <div className="space-y-2 mt-5">
               <div className="flex justify-between text-[10px] text-slate-500 font-bold font-mono">
                 <span>00:00</span>
                 <span className="text-indigo-400/80">12:00</span>
@@ -828,41 +700,6 @@ export default function Home() {
                 />
               </div>
             </div>
-
-            {/* Time Presets */}
-            <div className="space-y-3">
-              <label className="text-[11px] font-bold text-slate-400 tracking-wide uppercase block">시간대 주요 예측 프리셋</label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => setPresetTime(8, 30)}
-                  className="py-2.5 px-3 rounded-2xl bg-gradient-to-br from-rose-500/5 to-orange-500/5 hover:from-rose-500/10 hover:to-orange-500/10 border border-rose-500/15 hover:border-rose-400/30 text-xs font-semibold text-rose-300 transition-all flex flex-col items-center"
-                >
-                  <span className="font-extrabold">08:30 (출근)</span>
-                  <span className="text-[9px] text-rose-500/70 mt-0.5 font-bold">오전 러시아워</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(18, 30)}
-                  className="py-2.5 px-3 rounded-2xl bg-gradient-to-br from-amber-500/5 to-indigo-500/5 hover:from-amber-500/10 hover:to-indigo-500/10 border border-amber-500/15 hover:border-amber-400/30 text-xs font-semibold text-amber-300 transition-all flex flex-col items-center"
-                >
-                  <span className="font-extrabold">18:30 (퇴근)</span>
-                  <span className="text-[9px] text-amber-500/70 mt-0.5 font-bold">오후 러시아워</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(14, 0)}
-                  className="py-2.5 px-3 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 hover:from-emerald-500/10 hover:to-teal-500/10 border border-emerald-500/15 hover:border-emerald-400/30 text-xs font-semibold text-emerald-300 transition-all flex flex-col items-center"
-                >
-                  <span className="font-extrabold">14:00 (낮)</span>
-                  <span className="text-[9px] text-emerald-500/70 mt-0.5 font-bold">원활한 배차</span>
-                </button>
-                <button
-                  onClick={() => setPresetTime(22, 30)}
-                  className="py-2.5 px-3 rounded-2xl bg-gradient-to-br from-indigo-500/5 to-slate-500/5 hover:from-indigo-500/10 hover:to-slate-500/10 border border-indigo-500/15 hover:border-indigo-400/30 text-xs font-semibold text-indigo-300 transition-all flex flex-col items-center"
-                >
-                  <span className="font-extrabold">22:30 (밤)</span>
-                  <span className="text-[9px] text-indigo-500/70 mt-0.5 font-bold">심야 버스 운행</span>
-                </button>
-              </div>
-            </div>
           </div>
         </aside>
 
@@ -870,7 +707,7 @@ export default function Home() {
         <section className="lg:col-span-8 flex flex-col space-y-8">
           
           {/* Leaflet Map Card */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col h-[420px] transition-all duration-300">
+          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col h-[400px] transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -901,13 +738,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 3. Interactive Multi-Route Display Board Card (띠지 시각화) */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between min-h-[460px] transition-all duration-300">
+          {/* 3. Interactive Multi-Route Unified Timeline Track Card (통합 띠지 시각화) */}
+          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between min-h-[420px] transition-all duration-300">
             <div>
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/40">
                 <h2 className="text-sm font-extrabold text-slate-200 flex items-center space-x-2">
                   <span className="w-3.5 h-3.5 rounded bg-indigo-500 animate-pulse" />
-                  <span>실시간 버스 도착 예측 전광판 (선형 타임라인 띠지)</span>
+                  <span>실시간 버스 통합 타임라인 전광판 (통합 띠지)</span>
                 </h2>
                 {selectedStation && (
                   <div className="text-xs text-indigo-300 font-bold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full shadow">
@@ -917,100 +754,117 @@ export default function Home() {
               </div>
 
               {!selectedStation ? (
-                <div className="flex flex-col items-center justify-center py-28 text-center text-slate-500">
+                <div className="flex flex-col items-center justify-center py-24 text-center text-slate-500">
                   <Info className="h-12 w-12 mb-3 text-indigo-500/20 animate-bounce" />
                   <p className="text-sm font-extrabold text-slate-300">정류장을 선택해주세요</p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">지도에서 정류장 마커를 선택하거나, 원하는 지도 상의 임의의 영역을 클릭하여 신규 정류장을 소환할 수 있습니다.</p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed font-semibold">지도에서 정류장 마커를 선택하거나, 원하는 지도 영역을 클릭해 신규 정류소를 추가하세요.</p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {selectedStation.routes.map(routeId => {
-                    const route = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981" };
-                    const activeBusesForRoute = simulatedBuses[routeId] || [];
+                <div className="space-y-4">
+                  
+                  {/* 통합 타임라인 자 (Unified Grid / Scale Header) */}
+                  <div className="flex items-center">
+                    {/* Fixed space for Route Badge on the left */}
+                    <div className="w-24 shrink-0 pr-4 text-right">
+                      <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">노선 목록</span>
+                    </div>
+                    {/* Shared timeline labels grid */}
+                    <div className="flex-1 relative flex justify-between text-[10px] font-extrabold text-slate-500 px-5 select-none font-mono">
+                      <span className="w-12 text-left">15분 전</span>
+                      <span className="w-12 text-center -translate-x-3">12분 전</span>
+                      <span className="w-12 text-center -translate-x-2">9분 전</span>
+                      <span className="w-12 text-center -translate-x-1">6분 전</span>
+                      <span className="w-12 text-center">3분 전</span>
+                      <span className="w-12 text-right text-indigo-400">도착지</span>
+                    </div>
+                  </div>
+
+                  {/* Single Unified Grid Timeline Board */}
+                  <div className="relative border border-slate-900 rounded-3xl bg-slate-950/70 overflow-hidden divide-y divide-slate-900/60 shadow-inner">
                     
-                    return (
-                      <div key={routeId} className="bg-slate-950/40 border border-slate-900/80 rounded-2xl p-4.5 relative hover:border-slate-800 transition duration-300">
-                        {/* Route Header Info */}
-                        <div className="flex items-center justify-between mb-3.5 border-b border-slate-900/30 pb-2">
-                          <div className="flex items-center space-x-2.5">
-                            <span className="text-xs font-extrabold px-3 py-1 rounded-xl text-white shadow-sm flex items-center space-x-1" style={{ backgroundColor: route.hex }}>
-                              <BusIcon className="w-3.5 h-3.5" />
-                              <span>{route.name}</span>
+                    {/* Background Vertical Grid Lines - spanning from top to bottom through all lanes */}
+                    <div className="absolute inset-0 pointer-events-none flex justify-between pl-24 pr-5 py-4 z-0">
+                      {/* LeftPercent mapped: 15m to 0m => 5% to 95% */}
+                      <div className="absolute left-[calc(24px+5%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[calc(24px+23%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[calc(24px+41%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[calc(24px+59%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      <div className="absolute left-[calc(24px+77%)] top-0 bottom-0 border-l border-slate-900/40 border-dashed" />
+                      
+                      {/* Red glowing Arrival Destination line */}
+                      <div className="absolute left-[calc(24px+95%)] top-0 bottom-0 border-l-2 border-indigo-500/40" />
+                    </div>
+
+                    {/* Render lanes within this single track board */}
+                    {selectedStation.routes.map(routeId => {
+                      const route = ROUTE_DETAILS[routeId] || { name: routeId, type: "지선", color: "emerald", hex: "#10b981", interval: 10 };
+                      const activeBusesForRoute = simulatedBuses[routeId] || [];
+
+                      return (
+                        <div key={routeId} className="flex items-center h-20 relative z-10 hover:bg-slate-900/10 transition duration-150">
+                          {/* Left Column: Route Label Badge */}
+                          <div className="w-24 shrink-0 pl-4 pr-2 flex flex-col justify-center border-r border-slate-900/40 h-full bg-slate-950/30">
+                            <span className="text-xxs text-slate-500 font-bold mb-0.5 tracking-tighter">배차 {route.interval}분</span>
+                            <span className="text-[11px] font-black px-2 py-0.5 rounded-lg text-white shadow-sm flex items-center justify-center space-x-1" style={{ backgroundColor: route.hex }}>
+                              <BusIcon className="w-3 h-3 shrink-0" />
+                              <span className="font-mono tracking-tighter">{route.name}</span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-bold">배차 {route.interval}분</span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-bold tracking-wider">방향: 서울 도심 방면</span>
-                        </div>
-
-                        {/* The Horizontal Track (띠지) */}
-                        <div className="h-16 relative bg-slate-950/70 border border-slate-900/80 rounded-xl overflow-hidden flex items-center px-4 shadow-inner">
-                          {/* Road Lanes Dashboard Line */}
-                          <div className="absolute left-4 right-4 h-1 bg-slate-900 rounded-full border-t border-slate-800/50" />
-                          <div className="absolute left-4 right-4 h-0.5 border-t border-dashed border-slate-800/80" />
-                          
-                          {/* Arrival Marker at the Right End */}
-                          <div className="absolute right-4 flex flex-col items-center justify-center z-20">
-                            <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 animate-ping absolute" />
-                            <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-2 border-slate-950 z-10 shadow" />
-                            <span className="text-[9px] font-extrabold text-indigo-400 mt-1 tracking-tighter">도착지</span>
                           </div>
 
-                          {/* Left End Marker (15 mins away) */}
-                          <div className="absolute left-4 flex flex-col items-center justify-center z-10 opacity-50">
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-                            <span className="text-[8px] font-bold text-slate-500 mt-1">15분 전</span>
-                          </div>
+                          {/* Right Column: Lane Track */}
+                          <div className="flex-1 h-full relative flex items-center pl-4 pr-5">
+                            {/* Bus Nodes gliding on the Track */}
+                            {activeBusesForRoute.length === 0 ? (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                                <span className="text-[10px] text-slate-500 font-bold italic tracking-wide">이 시간대에 버스 운행 일정 없음</span>
+                              </div>
+                            ) : (
+                              activeBusesForRoute.map(bus => {
+                                // Maps 15min window perfectly: 15m (5%) to 0m (95%)
+                                const leftPercent = ((15 - bus.minutesLeft) / 15) * 90 + 5;
+                                const isCrowded = bus.status === 'CROWDED';
 
-                          {/* Bus Nodes moving on the Track */}
-                          {activeBusesForRoute.length === 0 ? (
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span className="text-[11px] text-slate-700 font-bold italic tracking-wide">현재 시간대에 버스 운행 일정 없음 (운행 종료)</span>
-                            </div>
-                          ) : (
-                            activeBusesForRoute.map(bus => {
-                              const leftPercent = ((15 - bus.minutesLeft) / 15) * 80 + 5;
-                              const isCrowded = bus.status === 'CROWDED';
-                              
-                              return (
-                                <div
-                                  key={bus.id}
-                                  className="absolute -translate-y-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
-                                  style={{ left: `${leftPercent}%`, top: '50%' }}
-                                >
-                                  {/* Bus Node Card */}
+                                return (
                                   <div
-                                    className={`px-3 py-1.5 rounded-xl border flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer ${
-                                      isCrowded 
-                                        ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-400 shadow-rose-500/20' 
-                                        : 'text-white shadow-black/40 hover:brightness-110'
-                                    }`}
-                                    style={{ 
-                                      backgroundColor: isCrowded ? undefined : route.hex,
-                                      borderColor: isCrowded ? undefined : `${route.hex}cc`
-                                    }}
+                                    key={bus.id}
+                                    className="absolute -translate-x-1/2 transition-all duration-1000 ease-in-out z-20 flex flex-col items-center"
+                                    style={{ left: `${leftPercent}%` }}
                                   >
-                                    <div className="flex items-center space-x-1">
-                                      <BusIcon className="w-3 h-3 shrink-0" />
-                                      <span className="text-[10px] font-extrabold tracking-tight">{route.name}</span>
+                                    {/* Bus Node Card */}
+                                    <div
+                                      className={`px-2.5 py-1 rounded-xl border flex flex-col items-center justify-center shadow-md hover:scale-105 transition-all duration-300 cursor-pointer ${
+                                        isCrowded 
+                                          ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-400 shadow-rose-500/10' 
+                                          : 'text-white shadow-black/30 hover:brightness-110'
+                                      }`}
+                                      style={{ 
+                                        backgroundColor: isCrowded ? undefined : route.hex,
+                                        borderColor: isCrowded ? undefined : `${route.hex}cc`
+                                      }}
+                                    >
+                                      <div className="flex items-center space-x-0.5">
+                                        <BusIcon className="w-2.5 h-2.5 shrink-0" />
+                                        <span className="text-[9px] font-black tracking-tight font-mono">{route.name}</span>
+                                      </div>
+                                      <span className="text-[8px] font-extrabold opacity-95 mt-0.5 whitespace-nowrap flex items-center space-x-0.5 font-mono">
+                                        <span>{bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분전`}</span>
+                                        {isCrowded && <span className="text-[7px] bg-white text-rose-600 px-0.5 py-0.1 rounded font-black">혼잡</span>}
+                                      </span>
                                     </div>
-                                    <span className="text-[9px] font-extrabold opacity-95 mt-0.5 whitespace-nowrap flex items-center space-x-1">
-                                      <span>{bus.minutesLeft === 0 ? "도착" : `${bus.minutesLeft}분 전`}</span>
-                                      {isCrowded && <span className="text-[8px] bg-white text-rose-600 px-1 py-0.2 rounded font-extrabold">혼잡</span>}
-                                    </span>
+                                    
+                                    {/* Point indicator dot */}
+                                    <div className={`w-1.5 h-1.5 rounded-full border mt-1 shadow-sm ${
+                                      isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
+                                    }`} />
                                   </div>
-                                  
-                                  {/* Point indicator dot */}
-                                  <div className={`w-1.5 h-1.5 rounded-full border mt-1 shadow ${
-                                    isCrowded ? 'bg-rose-400 border-slate-950 animate-pulse' : 'bg-white border-slate-950'
-                                  }`} />
-                                </div>
-                              );
-                            })
-                          )}
+                                );
+                              })
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -1019,7 +873,7 @@ export default function Home() {
             <div className="border-t border-slate-900/60 pt-4 mt-6 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-4">
               <div className="flex items-center space-x-2">
                 <Info className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span>시간 제어 슬라이더를 조작하면 각 버스가 도착 예정 시간에 맞춰 <b>실시간 연동 이동</b>합니다.</span>
+                <span>선택된 정류소의 경유 버스들이 하나의 <b>통합형 띠지 보드</b>에서 동시에 움직이며 한눈에 비교 예측이 가능합니다.</span>
               </div>
               <div className="flex flex-wrap items-center gap-3 shrink-0 text-[10px] font-bold">
                 <div className="flex items-center space-x-1.5">
@@ -1045,146 +899,13 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* 4. Interactive Destination & Arrival Predictor Card (Smart Travel Itinerary) */}
-          <div className="bg-slate-900/40 border border-slate-900/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl transition-all duration-300">
-            <h2 className="text-sm font-extrabold text-slate-200 mb-5 flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-indigo-400" />
-              <span>목적지 기반 최적 버스 및 탑승 시각 예측 시스템</span>
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-              {/* Destination Station */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">목적지 정류소 선택</label>
-                <select
-                  value={destStationId}
-                  onChange={(e) => setDestStationId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-900/80 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20"
-                >
-                  {stations.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Hour */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">목적지 희망 도착 시간</label>
-                <div className="flex items-center space-x-2">
-                  <select
-                    value={destHour}
-                    onChange={(e) => setDestHour(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-900/80 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono"
-                  >
-                    {Array.from({ length: 24 }).map((_, i) => {
-                      const h = String(i).padStart(2, '0');
-                      return <option key={h} value={h}>{h}시</option>;
-                    })}
-                  </select>
-                  <select
-                    value={destMinute}
-                    onChange={(e) => setDestMins(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-900/80 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 font-mono"
-                  >
-                    {Array.from({ length: 12 }).map((_, i) => {
-                      const m = String(i * 5).padStart(2, '0');
-                      return <option key={m} value={m}>{m}분</option>;
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              {/* Find Button */}
-              <div className="flex items-end">
-                <button
-                  onClick={handleFindRoute}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-2.5 px-4 rounded-xl transition-all shadow-lg shadow-indigo-600/10 flex items-center justify-center space-x-2 text-xs"
-                >
-                  <TrendingUp className="h-4 w-4" />
-                  <span>최적 탑승 스케줄 계산</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Finder Result Display - Retro Boarding Pass Layout */}
-            {finderResult && (
-              <div className="bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden shadow-2xl relative">
-                {finderResult.error ? (
-                  <div className="flex items-center space-x-2.5 text-rose-400 text-xs p-5">
-                    <AlertTriangle className="h-5 w-5 shrink-0" />
-                    <span className="font-bold">{finderResult.error}</span>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    {/* Header bar */}
-                    <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 px-5 py-3 border-b border-slate-900/80 flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="bg-indigo-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg tracking-wider uppercase">BOARDING PASS</span>
-                        <span className="text-xs font-black text-slate-200">
-                          {finderResult.bus.busName} ({finderResult.bus.busId}) 추천 스케줄
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 font-bold">
-                        소요 예측: <b className="text-indigo-400 text-xs font-black">{finderResult.durationMins}분</b>
-                      </div>
-                    </div>
-
-                    {/* Content body */}
-                    <div className="p-5 grid grid-cols-1 md:grid-cols-5 items-center gap-4">
-                      {/* Boarding Station */}
-                      <div className="md:col-span-2 bg-slate-900/30 p-4 rounded-2xl border border-slate-900/50 text-center relative hover:border-slate-800 transition">
-                        <div className="text-[9px] text-slate-500 font-extrabold uppercase mb-1.5 tracking-wider">DEPARTURE (탑승지)</div>
-                        <div className="text-xs font-black text-slate-100 line-clamp-1">{finderResult.boardStation.name}</div>
-                        <div className="text-xs font-mono font-black text-indigo-400 mt-1">
-                          {formatDisplayTime(finderResult.boardTime)} 출발
-                        </div>
-                      </div>
-
-                      {/* Arrow */}
-                      <div className="flex flex-col items-center justify-center text-slate-700">
-                        <ArrowRight className="h-5 w-5 hidden md:block" />
-                        <span className="text-xs font-black md:hidden">➔</span>
-                      </div>
-
-                      {/* Destination Station */}
-                      <div className="md:col-span-2 bg-slate-900/30 p-4 rounded-2xl border border-slate-900/50 text-center relative hover:border-slate-800 transition">
-                        <div className="text-[9px] text-slate-500 font-extrabold uppercase mb-1.5 tracking-wider">ARRIVAL (목적지)</div>
-                        <div className="text-xs font-black text-slate-100 line-clamp-1">{finderResult.destStation.name}</div>
-                        <div className="text-xs font-mono font-black text-emerald-400 mt-1">
-                          {formatDisplayTime(finderResult.arrivalTime)} 도착
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dotted Tear Line */}
-                    <div className="border-t border-dashed border-slate-900/90 relative h-0">
-                      <div className="absolute -left-2.5 -top-2.5 w-5 h-5 rounded-full bg-slate-950 border border-slate-950" />
-                      <div className="absolute -right-2.5 -top-2.5 w-5 h-5 rounded-full bg-slate-950 border border-slate-950" />
-                    </div>
-
-                    {/* Footer instructions */}
-                    <div className="bg-indigo-950/20 p-4 px-5 text-[11px] text-indigo-300 flex items-start space-x-3 rounded-b-2xl">
-                      <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-indigo-400" />
-                      <div>
-                        <p className="font-black mb-0.5">최적의 시간 계획이 타임라인 시뮬레이터에 적용되었습니다!</p>
-                        <p className="text-slate-400 leading-relaxed font-medium">
-                          위 타임라인 전광판의 출발지 버스 정류장이 자동으로 <span className="text-indigo-300 font-bold">{finderResult.boardStation.name}</span>로 선택되었고, 목표 탑승 예정 시간인 <span className="text-indigo-300 font-bold">{formatDisplayTime(finderResult.boardTime)}</span>으로 자동 스크롤되었습니다. 추천 버스 아이콘의 실시간 진행도를 전광판에서 바로 확인해 보실 수 있습니다.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </section>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-8 text-center text-xs text-slate-500 font-medium space-y-1">
         <p>© 2026 Interactive Bus Arrival Prediction Pro. All rights reserved.</p>
-        <p className="text-slate-600">This clean simulation interface runs entirely offline with high-fidelity deterministic scheduling.</p>
+        <p className="text-slate-600 font-semibold">High-fidelity dark control board for seamless route predictions.</p>
       </footer>
     </div>
   );
