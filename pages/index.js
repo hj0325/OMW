@@ -136,10 +136,10 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
 
   return (
     <div 
-      className="absolute inset-0 rounded-2xl overflow-hidden z-0 animate-[fade-in_0.6s_ease-out]"
+      className="absolute inset-0 rounded-2xl overflow-hidden z-0"
       style={{
         background: `linear-gradient(135deg, ${saturatedHex}, ${saturatedHex}dd)`,
-        boxShadow: `0 0 32px ${saturatedHighlight}55, inset 0 0 20px ${saturatedHighlight}aa`
+        animation: 'transition-vibe-glow 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards'
       }}
     >
       {/* Animated Liquid Flow Effect (Pure CSS/SVG - incredibly smooth & robust) */}
@@ -149,7 +149,8 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
           background: `radial-gradient(circle at 30% 30%, ${saturatedHighlight}, transparent 60%),
                        radial-gradient(circle at 70% 70%, ${saturatedHighlight}, transparent 60%)`,
           animationDuration: '6s',
-          filter: 'blur(8px)'
+          filter: 'blur(8px)',
+          transition: 'background 0.5s ease'
         }}
       />
       {/* Subtle shining light beam sweep */}
@@ -161,19 +162,20 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
         }}
       />
       
-      {/* Soft dynamic inner glowing pulse edge */}
+      {/* Soft dynamic inner glowing pulse edge - narrower glow margin */}
       <div 
         className="absolute inset-0 rounded-2xl pointer-events-none"
         style={{
-          boxShadow: `inset 0 0 16px ${saturatedHighlight}`,
+          boxShadow: `inset 0 0 10px ${saturatedHighlight}`,
           animation: 'inner-glow-pulse 3s infinite ease-in-out',
           mixBlendMode: 'screen',
-          opacity: 0.95
+          opacity: 0.95,
+          transition: 'box-shadow 0.5s ease'
         }}
       />
       
-      {/* Glow highlight border */}
-      <div className="absolute inset-0 border border-white/20 rounded-2xl" />
+      {/* Glow highlight border - subtle borders */}
+      <div className="absolute inset-0 border border-white/10 rounded-2xl" />
 
       <style jsx global>{`
         @keyframes shining-beam {
@@ -183,19 +185,35 @@ const WebGLBusCard = ({ hex, highlightHex, isDot }) => {
         }
         @keyframes inner-glow-pulse {
           0% {
-            box-shadow: inset 0 0 10px var(--glow-color, rgba(255,255,255,0.5)),
-                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight}dd);
+            box-shadow: inset 0 0 6px var(--glow-color, rgba(255,255,255,0.4)),
+                        inset 0 0 12px var(--glow-fallback, ${saturatedHighlight}dd);
             opacity: 0.75;
           }
           50% {
-            box-shadow: inset 0 0 18px var(--glow-color, rgba(255,255,255,0.7)),
-                        inset 0 0 32px var(--glow-fallback, ${saturatedHighlight});
+            box-shadow: inset 0 0 12px var(--glow-color, rgba(255,255,255,0.7)),
+                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight});
             opacity: 1.0;
           }
           100% {
-            box-shadow: inset 0 0 10px var(--glow-color, rgba(255,255,255,0.5)),
-                        inset 0 0 20px var(--glow-fallback, ${saturatedHighlight}dd);
+            box-shadow: inset 0 0 6px var(--glow-color, rgba(255,255,255,0.4)),
+                        inset 0 0 12px var(--glow-fallback, ${saturatedHighlight}dd);
             opacity: 0.75;
+          }
+        }
+        @keyframes transition-vibe-glow {
+          0% {
+            filter: saturate(2.5) brightness(1.6) contrast(1.2);
+            box-shadow: 0 0 20px ${saturatedHighlight}55, inset 0 0 16px ${saturatedHighlight};
+            transform: scale(1.05);
+          }
+          20% {
+            filter: saturate(2.0) brightness(1.3) contrast(1.1);
+            transform: scale(1.02);
+          }
+          100% {
+            filter: saturate(1) brightness(1) contrast(1);
+            box-shadow: 0 0 12px ${saturatedHighlight}33, inset 0 0 10px ${saturatedHighlight}77;
+            transform: scale(1);
           }
         }
       `}</style>
@@ -1250,6 +1268,8 @@ export default function Home() {
                             }
                           }
 
+                          const currentTypeKey = isHero ? 'hero' : isRect ? 'rect' : isSquare ? 'square' : 'dot';
+
                           return (
                             <div
                               key={`${st.id}-${bus.id}`}
@@ -1258,7 +1278,8 @@ export default function Home() {
                             >
                               <div className={`${cardClass} relative overflow-visible transition-all duration-1000 ease-in-out`}>
                                 <WebGLBusCard 
-                                  hex={isCrowded ? "#ef4444" : r.hex}
+                                  key={`${bus.id}-${currentTypeKey}`}
+                                  hex={r.hex}
                                   highlightHex={highlightHex}
                                   isDot={isDot}
                                 />
